@@ -162,6 +162,36 @@ export interface ParsedExcelRow {
   depth: number;
 }
 
+// URI conflict detection
+export interface URIConflict {
+  depth: number;
+  segment: string;
+  conflictingPages: { pageId: string; name: string }[];
+}
+
+// URI validation result
+export interface URIValidation {
+  isValid: boolean;
+  warnings: string[];
+  errors: string[];
+  segmentCount: number;
+  maxSegmentLength: number;
+}
+
+// URI export data (flattened for CSV/JSON/.htaccess)
+export interface URIExportData {
+  pageId: string;
+  pageName: string;
+  currentURI: string;
+  status: MigrationStatus;
+  depth: number;
+  parentId?: string;
+  slug: string;
+  conflicts: string[];
+  contentResponsibility: ContentResponsibility | null;
+  migrationOwner: ContentResponsibility | null;
+}
+
 // Stats for dashboard
 export interface MigrationStats {
   totalPages: number;

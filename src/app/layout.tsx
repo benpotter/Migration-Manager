@@ -9,7 +9,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: "RCC Migration Manager",
+  title: "Migration Manager",
   description: "Content migration management for Rogue Community College",
 };
 

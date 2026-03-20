@@ -190,6 +190,41 @@ export const QUICK_FILTERS = [
   },
 ] as const;
 
+// ── URI Validation ──────────────────────────────────────
+export const URI_VALIDATION_CONFIG = {
+  allowedCharsRegex: /^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/,
+  reservedSegments: [
+    "admin",
+    "api",
+    "login",
+    "logout",
+    "auth",
+    "static",
+    "assets",
+    "wp-admin",
+    "wp-content",
+    "node_modules",
+  ],
+  maxSegmentLength: 80,
+  warnSegmentLength: 50,
+  maxPathLength: 2048,
+  maxDepth: 10,
+  warnDepth: 5,
+  optimalDepth: 3,
+} as const;
+
+// ── URI Depth Colors ────────────────────────────────────
+export const URI_DEPTH_COLORS: Record<number, string> = {
+  0: "border-l-blue-400",
+  1: "border-l-green-400",
+  2: "border-l-purple-400",
+  3: "border-l-yellow-400",
+  4: "border-l-pink-400",
+  5: "border-l-cyan-400",
+  6: "border-l-orange-400",
+  7: "border-l-red-400",
+};
+
 // ── MC Templates ────────────────────────────────────────
 export const MC_TEMPLATES = [
   "Home Page",

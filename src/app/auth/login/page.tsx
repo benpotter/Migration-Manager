@@ -113,7 +113,7 @@ function LoginForm() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">
-            RCC Migration Manager
+            Migration Manager
           </CardTitle>
           <CardDescription>
             Sign in to manage the Rogue Community College site migration
@@ -243,7 +243,7 @@ export default function LoginPage() {
           <Card className="w-full max-w-md">
             <CardHeader className="text-center">
               <CardTitle className="text-2xl font-bold">
-                RCC Migration Manager
+                Migration Manager
               </CardTitle>
               <CardDescription>Loading...</CardDescription>
             </CardHeader>
