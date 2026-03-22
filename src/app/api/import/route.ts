@@ -109,6 +109,7 @@ export async function POST(request: NextRequest) {
       migrator: row.migrator,
       parent_page_id: row.parent_page_id,
       depth: row.depth ?? 1,
+      sort_order: 0,
     };
 
     const existingId = existingMap.get(row.page_id);

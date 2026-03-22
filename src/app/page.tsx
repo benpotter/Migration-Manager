@@ -11,7 +11,8 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { STATUS_CONFIG, MIGRATION_STATUSES } from "@/lib/constants";
-import { FileText, TrendingUp, Users, AlertCircle } from "lucide-react";
+import { FileText, TrendingUp, Users, AlertCircle, ArrowRight } from "lucide-react";
+import Link from "next/link";
 import type { MigrationStats, MigrationStatus } from "@/types";
 
 function getInitials(name: string | null): string {
@@ -96,6 +97,20 @@ export default function DashboardPage() {
 
   return (
     <div className="p-6 space-y-6">
+      {/* Project Banner */}
+      <Link
+        href="/projects"
+        className="flex items-center justify-between rounded-lg border bg-muted/50 px-4 py-3 hover:bg-muted transition-colors"
+      >
+        <div>
+          <p className="text-sm font-medium">Select a project to get started</p>
+          <p className="text-xs text-muted-foreground">
+            View and manage your migration projects
+          </p>
+        </div>
+        <ArrowRight className="h-4 w-4 text-muted-foreground" />
+      </Link>
+
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold">Dashboard</h1>

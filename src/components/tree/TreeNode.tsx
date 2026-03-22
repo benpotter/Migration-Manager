@@ -1,12 +1,14 @@
 "use client";
 
-import { ChevronRight, ChevronDown } from "lucide-react";
+import { ChevronRight, ChevronDown, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PAGE_STYLE_ICONS } from "@/lib/constants";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { ResponsibilityBadge } from "@/components/shared/ResponsibilityBadge";
 import { Checkbox } from "@/components/ui/checkbox";
-import type { PageNode } from "@/types";
+import { TreeNodeContextMenu } from "./TreeNodeContextMenu";
+import { InlineRename } from "./InlineRename";
+import type { PageNode, MigrationStatus, ContentResponsibility } from "@/types";
 
 interface TreeNodeProps {
   node: PageNode;
@@ -18,6 +20,14 @@ interface TreeNodeProps {
   selected: boolean;
   isGhost?: boolean;
   searchMatch?: boolean;
+  onAddChild?: (parentId: string) => void;
+  onDelete?: (id: string, name: string, pageId: string, childCount: number) => void;
+  onStatusChange?: (nodeId: string, status: MigrationStatus) => void;
+  onResponsibilityChange?: (nodeId: string, value: ContentResponsibility) => void;
+  renamingId?: string | null;
+  onRenameStart?: (nodeId: string) => void;
+  onRenameEnd?: (newName?: string) => void;
+  projectId?: string;
 }
 
 export function TreeNode({
@@ -30,9 +40,19 @@ export function TreeNode({
   selected,
   isGhost = false,
   searchMatch = false,
+  onAddChild,
+  onDelete,
+  onStatusChange,
+  onResponsibilityChange,
+  renamingId,
+  onRenameStart,
+  onRenameEnd,
+  projectId,
 }: TreeNodeProps) {
   const hasChildren = node.children.length > 0;
   const Icon = node.pageStyle ? PAGE_STYLE_ICONS[node.pageStyle] : null;
+  const isRenaming = renamingId === node.id;
+  const hasContextMenu = !!(onAddChild || onDelete || onStatusChange);
 
   return (
     <div
@@ -75,13 +95,26 @@ export function TreeNode({
       {/* Page style icon */}
       {Icon && <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />}
 
-      {/* Page name */}
-      <button
-        onClick={() => onOpenDetail(node.id)}
-        className="truncate text-sm hover:underline text-left"
-      >
-        {node.name}
-      </button>
+      {/* Page name (inline rename or clickable) */}
+      {isRenaming && projectId && onRenameEnd ? (
+        <InlineRename
+          pageId={node.id}
+          currentName={node.name}
+          projectId={projectId}
+          onDone={onRenameEnd}
+        />
+      ) : (
+        <button
+          onClick={() => onOpenDetail(node.id)}
+          onDoubleClick={(e) => {
+            e.preventDefault();
+            onRenameStart?.(node.id);
+          }}
+          className="truncate text-sm hover:underline text-left"
+        >
+          {node.name}
+        </button>
+      )}
 
       {/* Page ID */}
       <span className="shrink-0 text-xs text-muted-foreground ml-1">
@@ -115,6 +148,19 @@ export function TreeNode({
         <span className="shrink-0 text-xs text-muted-foreground italic">
           {node.migrator}
         </span>
+      )}
+
+      {/* Context menu */}
+      {hasContextMenu && (
+        <TreeNodeContextMenu
+          node={node}
+          onOpenDetail={onOpenDetail}
+          onAddChild={onAddChild}
+          onRename={onRenameStart}
+          onDelete={onDelete}
+          onStatusChange={onStatusChange}
+          onResponsibilityChange={onResponsibilityChange}
+        />
       )}
 
       {/* Child count when collapsed */}

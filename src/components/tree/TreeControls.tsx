@@ -7,6 +7,7 @@ import {
   ChevronsDownUp,
   Download,
   Filter,
+  Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +33,7 @@ interface TreeControlsProps {
   onCollapseAll: () => void;
   onExpandToDepth: (depth: number) => void;
   onExport: () => void;
+  onAddPage?: () => void;
 }
 
 export function TreeControls({
@@ -47,6 +49,7 @@ export function TreeControls({
   onCollapseAll,
   onExpandToDepth,
   onExport,
+  onAddPage,
 }: TreeControlsProps) {
   const [depthInput, setDepthInput] = useState("2");
 
@@ -203,6 +206,14 @@ export function TreeControls({
         <Download className="h-3.5 w-3.5" />
         Export
       </Button>
+
+      {/* Add Page */}
+      {onAddPage && (
+        <Button size="sm" onClick={onAddPage} className="gap-1.5">
+          <Plus className="h-3.5 w-3.5" />
+          Add Page
+        </Button>
+      )}
     </div>
   );
 }

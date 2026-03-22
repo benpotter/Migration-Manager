@@ -1,5 +1,6 @@
 import * as XLSX from "xlsx";
 import { EXCEL_COLUMN_MAP } from "./constants";
+import { inferParentFromSet } from "./tree-builder";
 import type { ParsedExcelRow, ImportError } from "@/types";
 
 /** Map Excel/SmartSheet status labels to internal status values */
@@ -83,6 +84,17 @@ export function parseExcelBuffer(buffer: Buffer | ArrayBuffer): ExcelParseResult
   const rows: ParsedExcelRow[] = [];
   const errors: ImportError[] = [];
 
+  // First pass: collect all page IDs so we can resolve parents accurately
+  const allPageIds = new Set<string>();
+  for (const row of dataRows) {
+    if (!row) continue;
+    const idx = columnIndexMap["page_id"];
+    if (idx === undefined) continue;
+    const val = row[idx];
+    if (val === null || val === undefined || String(val).trim() === "") continue;
+    allPageIds.add(String(val).trim().replace(/\.+$/, ""));
+  }
+
   for (let i = 0; i < dataRows.length; i++) {
     const row = dataRows[i];
     if (!row) continue;
@@ -97,14 +109,14 @@ export function parseExcelBuffer(buffer: Buffer | ArrayBuffer): ExcelParseResult
       return String(val).trim();
     };
 
-    const pageId = get("page_id");
-    if (!pageId) continue; // skip empty rows
+    const rawPageId = get("page_id");
+    if (!rawPageId) continue; // skip empty rows
+    const pageId = rawPageId.replace(/\.+$/, "");
 
     // Compute parent_page_id and depth
     const segments = pageId.split(".");
     const depth = segments.length;
-    const parentPageId =
-      segments.length > 1 ? segments.slice(0, -1).join(".") : null;
+    const parentPageId = inferParentFromSet(pageId, allPageIds);
 
     // Handle design_file_url "Link" placeholder from SmartSheet
     let designFileUrl = get("design_file_url");
@@ -184,7 +196,21 @@ export function parseExcelBuffer(buffer: Buffer | ArrayBuffer): ExcelParseResult
     rows.push(parsedRow);
   }
 
-  return { rows, errors, totalRows: dataRows.length };
+  // Deduplicate by page_id (last row wins)
+  const deduped = new Map<string, ParsedExcelRow>();
+  for (const row of rows) {
+    if (deduped.has(row.page_id)) {
+      errors.push({
+        row: 0,
+        pageId: row.page_id,
+        field: "page_id",
+        message: `Duplicate page_id "${row.page_id}" — using last occurrence`,
+      });
+    }
+    deduped.set(row.page_id, row);
+  }
+
+  return { rows: Array.from(deduped.values()), errors, totalRows: dataRows.length };
 }
 
 // Alias for backward compatibility

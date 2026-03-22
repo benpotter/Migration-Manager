@@ -29,6 +29,7 @@ export type UserRole = "admin" | "editor" | "viewer";
 // Database row type (flat, as stored in DB)
 export interface PageRow {
   id: string;
+  project_id?: string;
   page_id: string;
   name: string;
   type: string | null;
@@ -76,6 +77,7 @@ export interface UserProfile {
   name: string | null;
   avatar_url: string | null;
   role: UserRole;
+  is_superadmin?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -137,6 +139,7 @@ export interface Notification {
   type: "status_change" | "comment_mention" | "assignment";
   message: string;
   page_id: string | null;
+  project_id?: string;
   is_read: boolean;
   created_at: string;
 }
@@ -202,3 +205,37 @@ export interface MigrationStats {
   recentEdits: (PageEdit & { page_name?: string })[];
   recentComments: (Comment & { page_name?: string })[];
 }
+
+// === Multi-project types (Phase 1) ===
+
+export type ProjectStatus = "active" | "completed" | "archived";
+export type DataMode = "import" | "direct_entry" | "hybrid";
+
+export interface Project {
+  id: string;
+  name: string;
+  slug: string;
+  client_name: string | null;
+  description: string | null;
+  data_mode: DataMode;
+  status: ProjectStatus;
+  color: string;
+  allowed_domains: string[];
+  settings: Record<string, unknown>;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectMember {
+  id: string;
+  project_id: string;
+  user_id: string;
+  role: UserRole;
+  created_at: string;
+  updated_at: string;
+  user?: UserProfile;
+  project?: Project;
+}
+
+export const DEFAULT_PROJECT_ID = "00000000-0000-0000-0000-000000000001";

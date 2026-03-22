@@ -24,7 +24,8 @@ function formatRelativeTime(dateStr: string): string {
 }
 
 export function createColumns(
-  onOpenDetail: (pageId: string) => void
+  onOpenDetail: (pageId: string) => void,
+  projectId?: string
 ): ColumnDef<PageRow>[] {
   return [
     {

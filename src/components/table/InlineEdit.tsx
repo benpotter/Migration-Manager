@@ -18,6 +18,7 @@ interface InlineEditProps {
   type?: "text" | "select";
   options?: { value: string; label: string }[];
   onSave?: (newValue: string) => void;
+  projectId?: string;
 }
 
 export function InlineEdit({
@@ -27,7 +28,10 @@ export function InlineEdit({
   type = "text",
   options = [],
   onSave,
+  projectId,
 }: InlineEditProps) {
+  const buildUrl = (path: string) => projectId ? `/api/p/${projectId}${path}` : `/api${path}`;
+
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(value ?? "");
   const [saving, setSaving] = useState(false);
@@ -48,7 +52,7 @@ export function InlineEdit({
 
     setSaving(true);
     try {
-      const res = await fetch(`/api/pages/${pageId}`, {
+      const res = await fetch(buildUrl(`/pages/${pageId}`), {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ [field]: newValue || null }),

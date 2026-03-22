@@ -281,7 +281,7 @@ export function URIPatternView({ tree, onOpenDetail }: URIPatternViewProps) {
     const hasConflict = conflictPageIds.has(node.pageId);
 
     return (
-      <div key={node.pageId}>
+      <div key={node.id}>
         <URINode
           node={node}
           depth={depth}

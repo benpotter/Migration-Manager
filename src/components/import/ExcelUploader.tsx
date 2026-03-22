@@ -9,9 +9,12 @@ import type { ImportResult } from "@/types";
 
 interface ExcelUploaderProps {
   onImportComplete: (result: ImportResult) => void;
+  projectId?: string;
 }
 
-export function ExcelUploader({ onImportComplete }: ExcelUploaderProps) {
+export function ExcelUploader({ onImportComplete, projectId }: ExcelUploaderProps) {
+  const buildUrl = (path: string) => projectId ? `/api/p/${projectId}${path}` : `/api${path}`;
+
   const [file, setFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -56,7 +59,7 @@ export function ExcelUploader({ onImportComplete }: ExcelUploaderProps) {
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await fetch("/api/import", {
+      const res = await fetch(buildUrl("/import"), {
         method: "POST",
         body: formData,
       });

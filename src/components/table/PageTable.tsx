@@ -46,7 +46,7 @@ import {
 } from "@/components/ui/select";
 import { createColumns } from "./columns";
 import { StatusFilter, PageStyleFilter, ResponsibilityFilter } from "./filters";
-import { QUICK_FILTERS, MIGRATION_STATUSES, STATUS_CONFIG } from "@/lib/constants";
+import { QUICK_FILTERS, MIGRATION_STATUSES, STATUS_CONFIG, CONTENT_RESPONSIBILITIES, PAGE_STYLES } from "@/lib/constants";
 import { toast } from "sonner";
 import type { PageRow, MigrationStatus, PageStyle, ContentResponsibility } from "@/types";
 
@@ -54,9 +54,12 @@ interface PageTableProps {
   data: PageRow[];
   onOpenDetail: (pageId: string) => void;
   onDataChange?: () => void;
+  projectId?: string;
 }
 
-export function PageTable({ data, onOpenDetail, onDataChange }: PageTableProps) {
+export function PageTable({ data, onOpenDetail, onDataChange, projectId }: PageTableProps) {
+  const buildUrl = (path: string) => projectId ? `/api/p/${projectId}${path}` : `/api${path}`;
+
   const [sorting, setSorting] = useState<SortingState>([{ id: "page_id", desc: false }]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -68,7 +71,7 @@ export function PageTable({ data, onOpenDetail, onDataChange }: PageTableProps) 
   const [pageStyleFilter, setPageStyleFilter] = useState<PageStyle[]>([]);
   const [responsibilityFilter, setResponsibilityFilter] = useState<ContentResponsibility[]>([]);
 
-  const columns = useMemo(() => createColumns(onOpenDetail), [onOpenDetail]);
+  const columns = useMemo(() => createColumns(onOpenDetail, projectId), [onOpenDetail, projectId]);
 
   // Apply custom filters
   const filteredData = useMemo(() => {
@@ -147,20 +150,42 @@ export function PageTable({ data, onOpenDetail, onDataChange }: PageTableProps) 
     setColumnFilters([]);
   }, []);
 
-  const handleBatchStatusUpdate = async (newStatus: MigrationStatus) => {
-    const pageIds = selectedRows.map((row) => row.original.page_id);
+  const handleBatchUpdate = async (updates: Record<string, unknown>, label: string) => {
+    const pageIds = selectedRows.map((row) => row.original.id);
     try {
-      const res = await fetch("/api/pages/batch", {
+      const res = await fetch(buildUrl("/pages/batch"), {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pageIds, updates: { status: newStatus } }),
+        body: JSON.stringify({ pageIds, updates }),
       });
       if (!res.ok) throw new Error("Batch update failed");
-      toast.success(`Updated ${pageIds.length} pages to ${STATUS_CONFIG[newStatus]?.label}`);
+      toast.success(`Updated ${pageIds.length} pages: ${label}`);
       setRowSelection({});
       onDataChange?.();
     } catch {
       toast.error("Failed to update pages");
+    }
+  };
+
+  const handleBatchStatusUpdate = async (newStatus: MigrationStatus) => {
+    await handleBatchUpdate({ status: newStatus }, STATUS_CONFIG[newStatus]?.label ?? newStatus);
+  };
+
+  const handleBatchDelete = async () => {
+    if (!projectId) return;
+    const ids = selectedRows.map((row) => row.original.id);
+    if (!confirm(`Delete ${ids.length} selected page(s)? This cannot be undone.`)) return;
+    try {
+      let deleted = 0;
+      for (const id of ids) {
+        const res = await fetch(buildUrl(`/pages/${id}`), { method: "DELETE" });
+        if (res.ok) deleted++;
+      }
+      toast.success(`Deleted ${deleted} page(s)`);
+      setRowSelection({});
+      onDataChange?.();
+    } catch {
+      toast.error("Failed to delete pages");
     }
   };
 
@@ -246,15 +271,13 @@ export function PageTable({ data, onOpenDetail, onDataChange }: PageTableProps) 
 
       {/* Bulk actions bar */}
       {selectedCount > 0 && (
-        <div className="flex items-center gap-2 rounded-md bg-muted p-2 text-sm">
+        <div className="flex items-center gap-2 rounded-md bg-muted p-2 text-sm flex-wrap">
           <span className="font-medium">{selectedCount} row(s) selected</span>
           <Select
-            onValueChange={(val) =>
-              handleBatchStatusUpdate(val as MigrationStatus)
-            }
+            onValueChange={(val) => handleBatchStatusUpdate(val as MigrationStatus)}
           >
-            <SelectTrigger className="w-[180px] h-8">
-              <SelectValue placeholder="Batch update status..." />
+            <SelectTrigger className="w-[160px] h-8">
+              <SelectValue placeholder="Set Status..." />
             </SelectTrigger>
             <SelectContent>
               {MIGRATION_STATUSES.map((status) => (
@@ -264,6 +287,58 @@ export function PageTable({ data, onOpenDetail, onDataChange }: PageTableProps) 
               ))}
             </SelectContent>
           </Select>
+          <Select
+            onValueChange={(val) =>
+              handleBatchUpdate({ content_responsibility: val }, `Responsibility → ${val}`)
+            }
+          >
+            <SelectTrigger className="w-[150px] h-8">
+              <SelectValue placeholder="Set Responsibility..." />
+            </SelectTrigger>
+            <SelectContent>
+              {CONTENT_RESPONSIBILITIES.map((r) => (
+                <SelectItem key={r} value={r}>{r}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            onValueChange={(val) =>
+              handleBatchUpdate({ migration_owner: val }, `Owner → ${val}`)
+            }
+          >
+            <SelectTrigger className="w-[140px] h-8">
+              <SelectValue placeholder="Set Owner..." />
+            </SelectTrigger>
+            <SelectContent>
+              {CONTENT_RESPONSIBILITIES.map((r) => (
+                <SelectItem key={r} value={r}>{r}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            onValueChange={(val) =>
+              handleBatchUpdate({ page_style: val }, `Style → ${val}`)
+            }
+          >
+            <SelectTrigger className="w-[160px] h-8">
+              <SelectValue placeholder="Set Style..." />
+            </SelectTrigger>
+            <SelectContent>
+              {PAGE_STYLES.map((style) => (
+                <SelectItem key={style} value={style}>{style}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {projectId && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-destructive"
+              onClick={handleBatchDelete}
+            >
+              Delete Selected
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="sm"

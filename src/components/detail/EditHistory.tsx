@@ -6,6 +6,7 @@ import type { PageEdit } from "@/types";
 
 interface EditHistoryProps {
   pageId: string;
+  projectId?: string;
 }
 
 function formatTime(dateStr: string): string {
@@ -36,7 +37,9 @@ function humanizeField(field: string): string {
   return field.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-export function EditHistory({ pageId }: EditHistoryProps) {
+export function EditHistory({ pageId, projectId }: EditHistoryProps) {
+  const buildUrl = (path: string) => projectId ? `/api/p/${projectId}${path}` : `/api${path}`;
+
   const [edits, setEdits] = useState<PageEdit[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
@@ -44,7 +47,7 @@ export function EditHistory({ pageId }: EditHistoryProps) {
   useEffect(() => {
     async function fetchHistory() {
       try {
-        const res = await fetch(`/api/pages/${pageId}/history`);
+        const res = await fetch(buildUrl(`/pages/${pageId}/history`));
         if (!res.ok) throw new Error("Failed to load history");
         const data = await res.json();
         setEdits(data);

@@ -12,6 +12,7 @@ import type { Comment } from "@/types";
 
 interface CommentThreadProps {
   pageId: string;
+  projectId?: string;
 }
 
 function formatTime(dateStr: string): string {
@@ -38,7 +39,9 @@ function getInitials(name: string | null): string {
     .slice(0, 2);
 }
 
-export function CommentThread({ pageId }: CommentThreadProps) {
+export function CommentThread({ pageId, projectId }: CommentThreadProps) {
+  const buildUrl = (path: string) => projectId ? `/api/p/${projectId}${path}` : `/api${path}`;
+
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [newComment, setNewComment] = useState("");
@@ -50,7 +53,7 @@ export function CommentThread({ pageId }: CommentThreadProps) {
 
   async function fetchComments() {
     try {
-      const res = await fetch(`/api/pages/${pageId}/comments`);
+      const res = await fetch(buildUrl(`/pages/${pageId}/comments`));
       if (!res.ok) throw new Error("Failed to load comments");
       const data = await res.json();
       setComments(data);
@@ -65,7 +68,7 @@ export function CommentThread({ pageId }: CommentThreadProps) {
     if (!newComment.trim()) return;
     setPosting(true);
     try {
-      const res = await fetch(`/api/pages/${pageId}/comments`, {
+      const res = await fetch(buildUrl(`/pages/${pageId}/comments`), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content: newComment.trim() }),

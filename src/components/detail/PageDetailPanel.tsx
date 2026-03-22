@@ -30,7 +30,7 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { ResponsibilityBadge } from "@/components/shared/ResponsibilityBadge";
 import { MC_TEMPLATES, CONTENT_RESPONSIBILITIES, MIGRATION_STATUSES, STATUS_CONFIG } from "@/lib/constants";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
-import { ExternalLink, FileText } from "lucide-react";
+import { ExternalLink, FileText, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import type { PageRow, MigrationStatus, ContentResponsibility } from "@/types";
 
@@ -38,9 +38,14 @@ interface PageDetailPanelProps {
   pageId: string | null;
   open: boolean;
   onClose: () => void;
+  projectId?: string;
+  onDelete?: (pageId: string, pageName: string, pageIdStr: string, childCount: number) => void;
+  onPageChange?: () => void;
 }
 
-export function PageDetailPanel({ pageId, open, onClose }: PageDetailPanelProps) {
+export function PageDetailPanel({ pageId, open, onClose, projectId, onDelete, onPageChange }: PageDetailPanelProps) {
+  const buildUrl = (path: string) => projectId ? `/api/p/${projectId}${path}` : `/api${path}`;
+
   const [page, setPage] = useState<PageRow | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -56,7 +61,7 @@ export function PageDetailPanel({ pageId, open, onClose }: PageDetailPanelProps)
     async function fetchPage() {
       setLoading(true);
       try {
-        const res = await fetch(`/api/pages/${pageId}`);
+        const res = await fetch(buildUrl(`/pages/${pageId}`));
         if (!res.ok) throw new Error("Failed to fetch page");
         const { data } = await res.json();
         setPage(data);
@@ -83,7 +88,7 @@ export function PageDetailPanel({ pageId, open, onClose }: PageDetailPanelProps)
 
     setSaving(true);
     try {
-      const res = await fetch(`/api/pages/${pageId}`, {
+      const res = await fetch(buildUrl(`/pages/${pageId}`), {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(editedFields),
@@ -103,7 +108,7 @@ export function PageDetailPanel({ pageId, open, onClose }: PageDetailPanelProps)
   const handleStatusChange = async (status: MigrationStatus) => {
     if (!pageId) return;
     try {
-      const res = await fetch(`/api/pages/${pageId}`, {
+      const res = await fetch(buildUrl(`/pages/${pageId}`), {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
@@ -128,6 +133,7 @@ export function PageDetailPanel({ pageId, open, onClose }: PageDetailPanelProps)
         {loading ? (
           <div className="p-6 space-y-4">
             <VisuallyHidden><SheetTitle>Loading page details</SheetTitle></VisuallyHidden>
+            <VisuallyHidden><SheetDescription>Loading page details</SheetDescription></VisuallyHidden>
             <Skeleton className="h-8 w-3/4" />
             <Skeleton className="h-4 w-1/2" />
             <Skeleton className="h-32 w-full" />
@@ -397,16 +403,34 @@ export function PageDetailPanel({ pageId, open, onClose }: PageDetailPanelProps)
                       <p>Parent: {page.parent_page_id}</p>
                     )}
                   </div>
+
+                  {/* Delete action */}
+                  {onDelete && (
+                    <>
+                      <Separator />
+                      <div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-destructive hover:text-destructive gap-1.5"
+                          onClick={() => onDelete(page.id, page.name, page.page_id, 0)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          Delete Page
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </TabsContent>
 
                 {/* Comments Tab */}
                 <TabsContent value="comments" className="mt-0">
-                  <CommentThread pageId={page.page_id} />
+                  <CommentThread pageId={page.id} projectId={projectId} />
                 </TabsContent>
 
                 {/* History Tab */}
                 <TabsContent value="history" className="mt-0">
-                  <EditHistory pageId={page.page_id} />
+                  <EditHistory pageId={page.id} projectId={projectId} />
                 </TabsContent>
               </ScrollArea>
             </Tabs>
