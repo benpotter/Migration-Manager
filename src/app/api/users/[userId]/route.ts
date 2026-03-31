@@ -42,13 +42,21 @@ export async function PATCH(
     );
   }
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("user_profiles")
     .update({ role })
-    .eq("id", userId);
+    .eq("id", userId)
+    .select();
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  if (!updated || updated.length === 0) {
+    return NextResponse.json(
+      { error: "User not found or update not permitted" },
+      { status: 404 }
+    );
   }
 
   return NextResponse.json({ success: true });
