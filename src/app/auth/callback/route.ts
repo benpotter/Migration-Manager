@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { isAllowedDomain, getRoleForEmail } from "@/lib/auth";
+import { isAllowedDomain, getRoleForEmail, isSuperadminDomain } from "@/lib/auth";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -56,10 +56,11 @@ export async function GET(request: Request) {
 
   // Create or update user profile with correct role
   const role = getRoleForEmail(user.email);
+  const shouldBeSuperadmin = isSuperadminDomain(user.email);
 
   const { data: existingProfile } = await supabase
     .from("user_profiles")
-    .select("id, role")
+    .select("id, role, is_superadmin")
     .eq("id", user.id)
     .single();
 
@@ -70,13 +71,22 @@ export async function GET(request: Request) {
       name: user.user_metadata?.full_name ?? user.email.split("@")[0],
       avatar_url: null,
       role,
+      is_superadmin: shouldBeSuperadmin,
     });
-  } else if (role === "admin" && existingProfile.role !== "admin") {
-    // Promote to admin if their email is in the admin list but profile isn't admin yet
-    await supabase
-      .from("user_profiles")
-      .update({ role })
-      .eq("id", user.id);
+  } else {
+    const updates: Record<string, unknown> = {};
+    if (role === "admin" && existingProfile.role !== "admin") {
+      updates.role = role;
+    }
+    if (shouldBeSuperadmin && !existingProfile.is_superadmin) {
+      updates.is_superadmin = true;
+    }
+    if (Object.keys(updates).length > 0) {
+      await supabase
+        .from("user_profiles")
+        .update(updates)
+        .eq("id", user.id);
+    }
   }
 
   if (isRecovery) {

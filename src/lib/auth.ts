@@ -30,3 +30,10 @@ export function isAllowedDomain(email: string): boolean {
   const domain = email.split("@")[1]?.toLowerCase();
   return ALLOWED_DOMAINS.includes(domain);
 }
+
+const SUPERADMIN_DOMAINS = ["madcollective.com"];
+
+export function isSuperadminDomain(email: string): boolean {
+  const domain = email.split("@")[1]?.toLowerCase();
+  return SUPERADMIN_DOMAINS.includes(domain);
+}

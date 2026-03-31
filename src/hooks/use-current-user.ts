@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { getRoleForEmail } from "@/lib/auth";
+import { getRoleForEmail, isSuperadminDomain } from "@/lib/auth";
 import { UserProfile } from "@/types";
 
 export function useCurrentUser() {
@@ -44,6 +44,7 @@ export function useCurrentUser() {
             name: authUser.user_metadata?.full_name ?? authUser.email!.split("@")[0],
             avatar_url: null,
             role: getRoleForEmail(authUser.email!),
+            is_superadmin: isSuperadminDomain(authUser.email!),
           };
 
           const { data: created, error: insertError } = await supabase
