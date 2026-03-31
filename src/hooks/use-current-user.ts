@@ -64,17 +64,28 @@ export function useCurrentUser() {
           console.error("[auth] Error fetching user_profiles:", profileError.message);
           throw new Error(profileError.message);
         } else {
-          // Check if the profile role needs to be promoted to admin
+          // Check if the profile needs promotion (role or superadmin)
           const expectedRole = getRoleForEmail(profile.email);
+          const shouldBeSuperadmin = isSuperadminDomain(profile.email);
+          const updates: Record<string, unknown> = {};
+
           if (expectedRole === "admin" && profile.role !== "admin") {
-            console.log("[auth] Promoting user to admin:", profile.email);
+            updates.role = "admin";
+          }
+          if (shouldBeSuperadmin && !profile.is_superadmin) {
+            updates.is_superadmin = true;
+          }
+
+          if (Object.keys(updates).length > 0) {
+            console.log("[auth] Promoting user:", profile.email, updates);
             const { error: updateError } = await supabase
               .from("user_profiles")
-              .update({ role: "admin" })
+              .update(updates)
               .eq("id", profile.id);
 
             if (!updateError) {
-              profile.role = "admin";
+              if (updates.role) profile.role = updates.role as string;
+              if (updates.is_superadmin) profile.is_superadmin = true;
             }
           }
 
