@@ -50,8 +50,7 @@ function LoginForm() {
     }
 
     console.log("[auth] signInWithPassword succeeded for:", email);
-    router.push("/");
-    router.refresh();
+    window.location.href = "/";
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
