@@ -28,11 +28,11 @@ import { CommentThread } from "./CommentThread";
 import { EditHistory } from "./EditHistory";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { ResponsibilityBadge } from "@/components/shared/ResponsibilityBadge";
-import { MC_TEMPLATES, CONTENT_RESPONSIBILITIES, MIGRATION_STATUSES, STATUS_CONFIG } from "@/lib/constants";
+import { MC_TEMPLATES, CONTENT_RESPONSIBILITIES, STATUS_CONFIG } from "@/lib/constants";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { ExternalLink, FileText, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import type { PageRow, MigrationStatus, ContentResponsibility } from "@/types";
+import type { PageRow, ContentResponsibility } from "@/types";
 
 interface PageDetailPanelProps {
   pageId: string | null;
@@ -105,7 +105,7 @@ export function PageDetailPanel({ pageId, open, onClose, projectId, onDelete, on
     }
   };
 
-  const handleStatusChange = async (status: MigrationStatus) => {
+  const handleStatusChange = async (status: string) => {
     if (!pageId) return;
     try {
       const res = await fetch(buildUrl(`/pages/${pageId}`), {
@@ -116,9 +116,33 @@ export function PageDetailPanel({ pageId, open, onClose, projectId, onDelete, on
       if (!res.ok) throw new Error("Failed to update status");
       const { data: updated } = await res.json();
       setPage(updated);
-      toast.success(`Status updated to ${STATUS_CONFIG[status]?.label}`);
+      toast.success(`Status updated to ${STATUS_CONFIG[status]?.label ?? status}`);
+      onPageChange?.();
     } catch {
       toast.error("Failed to update status");
+    }
+  };
+
+  const handleBlockToggle = async (blocked: boolean, reason?: string) => {
+    if (!pageId) return;
+    try {
+      const updates: Record<string, unknown> = {
+        is_blocked: blocked,
+        blocked_reason: blocked ? (reason ?? null) : null,
+        blocked_at: blocked ? new Date().toISOString() : null,
+      };
+      const res = await fetch(buildUrl(`/pages/${pageId}`), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+      if (!res.ok) throw new Error("Failed to update");
+      const { data: updated } = await res.json();
+      setPage(updated);
+      toast.success(blocked ? "Page blocked" : "Page unblocked");
+      onPageChange?.();
+    } catch {
+      toast.error("Failed to update blocked status");
     }
   };
 
@@ -145,7 +169,7 @@ export function PageDetailPanel({ pageId, open, onClose, projectId, onDelete, on
               <SheetTitle className="text-lg">{page.name}</SheetTitle>
               <SheetDescription className="flex items-center gap-2">
                 <span className="font-mono text-xs">{page.page_id}</span>
-                <StatusBadge status={page.status} />
+                <StatusBadge status={page.status} isBlocked={page.is_blocked} />
                 <ResponsibilityBadge
                   responsibility={page.content_responsibility}
                 />
@@ -156,7 +180,10 @@ export function PageDetailPanel({ pageId, open, onClose, projectId, onDelete, on
             <div className="px-6 pb-4">
               <StatusStepper
                 currentStatus={currentValue("status")}
+                isBlocked={page.is_blocked ?? false}
+                blockedReason={page.blocked_reason}
                 onStatusChange={handleStatusChange}
+                onBlockToggle={handleBlockToggle}
               />
             </div>
 

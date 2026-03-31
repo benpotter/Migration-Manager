@@ -12,34 +12,28 @@ import {
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { MIGRATION_STATUSES, STATUS_CONFIG } from "@/lib/constants";
-import type { MigrationStatus } from "@/types";
-
-const STATUS_COLORS: Record<string, string> = {
-  not_started: "#9ca3af",
-  content_drafting: "#3b82f6",
-  content_review: "#eab308",
-  content_approved: "#22c55e",
-  migration_in_progress: "#a855f7",
-  migration_complete: "#6366f1",
-  qa_design: "#f97316",
-  qa_content: "#f59e0b",
-  qa_links: "#14b8a6",
-  published: "#10b981",
-  blocked: "#ef4444",
-};
+import type { WorkflowStage } from "@/lib/workflow";
 
 interface ProgressChartProps {
-  byStatus: Record<MigrationStatus, number>;
+  byStatus: Record<string, number>;
   totalPages: number;
+  stages?: WorkflowStage[];
 }
 
-export function ProgressChart({ byStatus, totalPages }: ProgressChartProps) {
-  const data = MIGRATION_STATUSES.map((status) => ({
-    status,
-    label: STATUS_CONFIG[status]?.label ?? status,
-    count: byStatus[status] ?? 0,
-    color: STATUS_COLORS[status],
-  }));
+export function ProgressChart({ byStatus, totalPages, stages }: ProgressChartProps) {
+  const data = stages
+    ? [...stages].sort((a, b) => a.order - b.order).map((stage) => ({
+        status: stage.id,
+        label: stage.label,
+        count: byStatus[stage.id] ?? 0,
+        color: stage.color,
+      }))
+    : MIGRATION_STATUSES.map((status) => ({
+        status,
+        label: STATUS_CONFIG[status]?.label ?? status,
+        count: byStatus[status] ?? 0,
+        color: STATUS_CONFIG[status]?.label ? undefined : "#9ca3af",
+      }));
 
   return (
     <Card>

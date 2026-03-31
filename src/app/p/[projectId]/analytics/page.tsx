@@ -1,45 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { StatusDistribution } from "@/components/analytics/StatusDistribution";
 import { WorkloadChart } from "@/components/analytics/WorkloadChart";
 import { ProgressChart } from "@/components/analytics/ProgressChart";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useProject } from "@/contexts/project-context";
-import type { MigrationStats, MigrationStatus, PageRow } from "@/types";
+import { useProjectData } from "@/hooks/use-project-data";
 
 export default function ProjectAnalyticsPage() {
-  const { projectId, project } = useProject();
-  const [stats, setStats] = useState<MigrationStats | null>(null);
-  const [pages, setPages] = useState<PageRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { project, workflowStages } = useProject();
+  const { pages, stats, pagesLoading } = useProjectData();
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const [statsRes, pagesRes] = await Promise.all([
-          fetch(`/api/p/${projectId}/pages/stats`),
-          fetch(`/api/p/${projectId}/pages`),
-        ]);
-
-        if (statsRes.ok) {
-          const statsJson = await statsRes.json();
-          setStats(statsJson.data ?? null);
-        }
-        if (pagesRes.ok) {
-          const pagesJson = await pagesRes.json();
-          setPages(pagesJson.data ?? []);
-        }
-      } catch {
-        // Non-critical
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchData();
-  }, [projectId]);
-
-  if (loading) {
+  if (pagesLoading) {
     return (
       <div className="p-6 space-y-6">
         <Skeleton className="h-10 w-48" />
@@ -52,7 +24,7 @@ export default function ProjectAnalyticsPage() {
     );
   }
 
-  const byStatus = (stats?.byStatus ?? {}) as Record<MigrationStatus, number>;
+  const byStatus = (stats?.byStatus ?? {}) as Record<string, number>;
   const totalPages = stats?.totalPages ?? 0;
 
   return (
@@ -65,8 +37,8 @@ export default function ProjectAnalyticsPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <StatusDistribution byStatus={byStatus} />
-        <ProgressChart byStatus={byStatus} totalPages={totalPages} />
+        <StatusDistribution byStatus={byStatus} stages={workflowStages} />
+        <ProgressChart byStatus={byStatus} totalPages={totalPages} stages={workflowStages} />
       </div>
 
       <WorkloadChart pages={pages} />

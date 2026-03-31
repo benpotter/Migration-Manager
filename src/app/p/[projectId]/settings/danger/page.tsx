@@ -62,7 +62,8 @@ export default function DangerZoneSettingsPage() {
         throw new Error(err.error || "Failed to delete");
       }
       toast.success("Project deleted");
-      router.push("/projects");
+      router.push("/");
+      router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to delete");
     } finally {

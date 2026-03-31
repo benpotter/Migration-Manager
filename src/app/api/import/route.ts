@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/auth";
 import { parseExcelBuffer } from "@/lib/excel-parser";
+import { slugifyPageName } from "@/lib/page-id-generator";
 import type { ParsedExcelRow, ImportResult } from "@/types";
 
 // POST /api/import - Import parsed page data (admin only)
@@ -95,7 +96,7 @@ export async function POST(request: NextRequest) {
       page_id: row.page_id,
       name: row.name,
       type: row.type,
-      slug: row.slug,
+      slug: row.slug || slugifyPageName(row.name),
       source_url: row.source_url,
       content_draft_url: row.content_draft_url,
       page_style: row.page_style,

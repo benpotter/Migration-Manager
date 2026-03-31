@@ -2,6 +2,7 @@
 
 import { createContext, useContext } from "react";
 import type { Project, UserRole, DataMode } from "@/types";
+import type { WorkflowStage } from "@/lib/workflow";
 
 interface ProjectContextValue {
   projectId: string;
@@ -11,6 +12,7 @@ interface ProjectContextValue {
   isReadOnly: boolean;
   canEdit: boolean;
   isProjectAdmin: boolean;
+  workflowStages: WorkflowStage[];
 }
 
 export const ProjectContext = createContext<ProjectContextValue | null>(null);

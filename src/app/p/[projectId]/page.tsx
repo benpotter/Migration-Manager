@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -10,14 +10,15 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { STATUS_CONFIG, MIGRATION_STATUSES } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
-import { FileText, TrendingUp, Users, AlertCircle, Upload, Pencil } from "lucide-react";
+import { FileText, TrendingUp, Users, AlertCircle, Upload, Pencil, Ban } from "lucide-react";
 import Link from "next/link";
 import { useProject } from "@/contexts/project-context";
+import { useProjectData } from "@/hooks/use-project-data";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { TemplatePickerDialog } from "@/components/pages/TemplatePickerDialog";
-import type { MigrationStats, MigrationStatus } from "@/types";
+import { getStagesByPhase, isFinalStage } from "@/lib/workflow";
+import type { MigrationStats } from "@/types";
 
 function getInitials(name: string | null): string {
   if (!name) return "?";
@@ -44,29 +45,12 @@ function formatTime(dateStr: string): string {
 }
 
 export default function ProjectDashboardPage() {
-  const { projectId, project, dataMode } = useProject();
+  const { projectId, project, dataMode, workflowStages } = useProject();
+  const { stats, recentEdits, pagesLoading } = useProjectData();
   usePageTitle("Dashboard", project.name);
-  const [stats, setStats] = useState<MigrationStats | null>(null);
-  const [loading, setLoading] = useState(true);
   const [templateOpen, setTemplateOpen] = useState(false);
 
-  useEffect(() => {
-    async function fetchStats() {
-      try {
-        const res = await fetch(`/api/p/${projectId}/pages/stats`);
-        if (!res.ok) throw new Error("Failed to fetch stats");
-        const json = await res.json();
-        setStats(json.data ?? null);
-      } catch {
-        // Stats are non-critical
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchStats();
-  }, [projectId]);
-
-  if (loading) {
+  if (pagesLoading) {
     return (
       <div className="p-6 space-y-6">
         <Skeleton className="h-10 w-64" />
@@ -81,23 +65,20 @@ export default function ProjectDashboardPage() {
   }
 
   const totalPages = stats?.totalPages ?? 0;
-  const byStatus = stats?.byStatus ?? ({} as Record<MigrationStatus, number>);
-  const publishedCount = byStatus.published ?? 0;
+  const byStatus = stats?.byStatus ?? {};
+  const blockedCount = stats?.blockedCount ?? 0;
+
+  // Use workflow stages for dynamic phase groupings
+  const sortedStages = [...workflowStages].sort((a, b) => a.order - b.order);
+  const finalStageId = sortedStages[sortedStages.length - 1]?.id;
+  const publishedCount = byStatus[finalStageId] ?? 0;
   const completionPercent =
     totalPages > 0 ? Math.round((publishedCount / totalPages) * 100) : 0;
 
-  const notStartedCount = byStatus.not_started ?? 0;
-  const inProgressCount =
-    (byStatus.content_drafting ?? 0) +
-    (byStatus.content_review ?? 0) +
-    (byStatus.content_approved ?? 0) +
-    (byStatus.migration_in_progress ?? 0) +
-    (byStatus.migration_complete ?? 0);
-  const qaCount =
-    (byStatus.qa_design ?? 0) +
-    (byStatus.qa_content ?? 0) +
-    (byStatus.qa_links ?? 0);
-  const blockedCount = byStatus.blocked ?? 0;
+  // Phase-based groupings
+  const phaseGroups = getStagesByPhase(workflowStages);
+  const qaStages = phaseGroups["qa"] ?? [];
+  const qaCount = qaStages.reduce((sum, s) => sum + (byStatus[s.id] ?? 0), 0);
 
   const macCount = stats?.byResponsibility?.MAC ?? 0;
   const rccCount = stats?.byResponsibility?.RCC ?? 0;
@@ -113,7 +94,7 @@ export default function ProjectDashboardPage() {
       </div>
 
       {/* Empty State */}
-      {totalPages === 0 && !loading && (
+      {totalPages === 0 && !pagesLoading && (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             {dataMode === "import" ? (
@@ -181,7 +162,7 @@ export default function ProjectDashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Published</CardTitle>
+            <CardTitle className="text-sm font-medium">{sortedStages[sortedStages.length - 1]?.label ?? "Published"}</CardTitle>
             <TrendingUp className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
@@ -205,7 +186,7 @@ export default function ProjectDashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Blocked</CardTitle>
-            <AlertCircle className="h-4 w-4 text-red-500" />
+            <Ban className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
@@ -232,52 +213,31 @@ export default function ProjectDashboardPage() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Not Started</span>
-                <span className="font-medium">{notStartedCount}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">In Progress</span>
-                <span className="font-medium">{inProgressCount}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">QA</span>
-                <span className="font-medium">{qaCount}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Published</span>
-                <span className="font-medium">{publishedCount}</span>
-              </div>
-            </div>
-
+            {/* Dynamic status breakdown */}
             <div className="space-y-2">
-              {MIGRATION_STATUSES.filter((s) => s !== "blocked").map(
-                (status) => {
-                  const count = byStatus[status] ?? 0;
-                  const pct =
-                    totalPages > 0
-                      ? Math.round((count / totalPages) * 100)
-                      : 0;
-                  const config = STATUS_CONFIG[status];
-                  return (
-                    <div key={status} className="space-y-1">
-                      <div className="flex items-center justify-between text-xs">
-                        <span>{config?.label}</span>
-                        <span className="text-muted-foreground">
-                          {count} ({pct}%)
-                        </span>
-                      </div>
-                      <div className="w-full bg-muted rounded-full h-1.5">
-                        <div
-                          className="h-1.5 rounded-full bg-current"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
+              {sortedStages.map((stage) => {
+                const count = byStatus[stage.id] ?? 0;
+                const pct =
+                  totalPages > 0
+                    ? Math.round((count / totalPages) * 100)
+                    : 0;
+                return (
+                  <div key={stage.id} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span>{stage.label}</span>
+                      <span className="text-muted-foreground">
+                        {count} ({pct}%)
+                      </span>
                     </div>
-                  );
-                }
-              )}
+                    <div className="w-full bg-muted rounded-full h-1.5">
+                      <div
+                        className="h-1.5 rounded-full transition-all"
+                        style={{ width: `${pct}%`, backgroundColor: stage.color }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
@@ -337,9 +297,9 @@ export default function ProjectDashboardPage() {
           <CardDescription>Latest edits and comments</CardDescription>
         </CardHeader>
         <CardContent>
-          {stats?.recentEdits && stats.recentEdits.length > 0 ? (
+          {recentEdits && recentEdits.length > 0 ? (
             <div className="space-y-3">
-              {stats.recentEdits.slice(0, 20).map((edit) => (
+              {recentEdits.slice(0, 20).map((edit) => (
                 <div
                   key={edit.id}
                   className="flex items-center gap-3 text-sm"

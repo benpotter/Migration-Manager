@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { SiteTree } from "@/components/tree/SiteTree";
 import { PageDetailPanel } from "@/components/detail/PageDetailPanel";
 import { CreatePageDialog } from "@/components/pages/CreatePageDialog";
@@ -10,16 +10,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Layers } from "lucide-react";
 import { useProject } from "@/contexts/project-context";
+import { useProjectData } from "@/hooks/use-project-data";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { toast } from "sonner";
-import type { PageNode, MigrationStatus, ContentResponsibility } from "@/types";
+import type { MigrationStatus, ContentResponsibility } from "@/types";
 
 export default function ProjectTreePage() {
   const { projectId, project, canEdit, dataMode, isProjectAdmin } = useProject();
+  const { tree, pagesLoading, pagesError, refreshPages } = useProjectData();
   usePageTitle("Tree View", project.name);
-  const [tree, setTree] = useState<PageNode[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [detailPageId, setDetailPageId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [batchCreateOpen, setBatchCreateOpen] = useState(false);
@@ -34,23 +33,6 @@ export default function ProjectTreePage() {
   const showCreateActions = canEdit && dataMode !== "import";
   const showDeleteActions = isProjectAdmin && dataMode !== "import";
   const enableDnd = canEdit && dataMode !== "import";
-
-  const fetchTree = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/p/${projectId}/pages/tree`);
-      if (!res.ok) throw new Error("Failed to fetch tree data");
-      const json = await res.json();
-      setTree(json.data ?? []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setLoading(false);
-    }
-  }, [projectId]);
-
-  useEffect(() => {
-    fetchTree();
-  }, [fetchTree]);
 
   const handleAddPage = () => {
     setCreateParentId(null);
@@ -77,7 +59,7 @@ export default function ProjectTreePage() {
         const err = await res.json();
         throw new Error(err.error || "Failed to reorder");
       }
-      fetchTree();
+      refreshPages();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to reorder");
     }
@@ -91,7 +73,7 @@ export default function ProjectTreePage() {
         body: JSON.stringify({ status }),
       });
       if (!res.ok) throw new Error("Failed to update status");
-      fetchTree();
+      refreshPages();
     } catch {
       toast.error("Failed to update status");
     }
@@ -105,17 +87,17 @@ export default function ProjectTreePage() {
         body: JSON.stringify({ content_responsibility: value }),
       });
       if (!res.ok) throw new Error("Failed to update");
-      fetchTree();
+      refreshPages();
     } catch {
       toast.error("Failed to update responsibility");
     }
   };
 
   const handleRename = useCallback(() => {
-    fetchTree();
-  }, [fetchTree]);
+    refreshPages();
+  }, [refreshPages]);
 
-  if (loading) {
+  if (pagesLoading) {
     return (
       <div className="p-6 space-y-3">
         <Skeleton className="h-10 w-full" />
@@ -128,12 +110,12 @@ export default function ProjectTreePage() {
     );
   }
 
-  if (error) {
+  if (pagesError) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
         <div className="text-center space-y-2">
           <p className="text-destructive font-medium">Error loading tree</p>
-          <p className="text-sm text-muted-foreground">{error}</p>
+          <p className="text-sm text-muted-foreground">{pagesError}</p>
         </div>
       </div>
     );
@@ -173,7 +155,7 @@ export default function ProjectTreePage() {
         onClose={() => setDetailPageId(null)}
         projectId={projectId}
         onDelete={showDeleteActions ? handleDeleteRequest : undefined}
-        onPageChange={fetchTree}
+        onPageChange={refreshPages}
       />
       {showCreateActions && (
         <>
@@ -183,7 +165,7 @@ export default function ProjectTreePage() {
             projectId={projectId}
             tree={tree}
             defaultParentId={createParentId}
-            onCreated={fetchTree}
+            onCreated={refreshPages}
           />
           <BatchCreateDialog
             open={batchCreateOpen}
@@ -191,7 +173,7 @@ export default function ProjectTreePage() {
             projectId={projectId}
             tree={tree}
             defaultParentId={createParentId}
-            onCreated={fetchTree}
+            onCreated={refreshPages}
           />
         </>
       )}
@@ -205,7 +187,7 @@ export default function ProjectTreePage() {
           onDeleted={() => {
             setDetailPageId(null);
             setDeleteTarget(null);
-            fetchTree();
+            refreshPages();
           }}
         />
       )}

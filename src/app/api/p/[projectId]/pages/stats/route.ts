@@ -16,7 +16,7 @@ export async function GET(
   // Fetch all non-archived pages for aggregation, scoped to project
   type StatsPage = Pick<
     PageRow,
-    "id" | "status" | "content_responsibility" | "page_style" | "migration_owner" | "name"
+    "id" | "status" | "content_responsibility" | "page_style" | "migration_owner" | "name" | "is_blocked"
   >;
   const allPages: StatsPage[] = [];
   const batchSize = 1000;
@@ -26,9 +26,9 @@ export async function GET(
   while (keepFetching) {
     const { data: batch, error: batchError } = await supabase
       .from("pages")
-      .select("id, status, content_responsibility, page_style, migration_owner, name")
+      .select("id, status, content_responsibility, page_style, migration_owner, name, is_blocked")
       .eq("project_id", projectId)
-      .eq("is_archived", false)
+      .or("is_archived.is.null,is_archived.eq.false")
       .range(from, from + batchSize - 1);
 
     if (batchError) {
@@ -49,9 +49,12 @@ export async function GET(
   const byResponsibility: Record<string, number> = {};
   const byPageStyle: Record<string, number> = {};
   const byMigrationOwner: Record<string, number> = {};
+  let blockedCount = 0;
 
   for (const page of allPages) {
     byStatus[page.status] = (byStatus[page.status] || 0) + 1;
+
+    if (page.is_blocked) blockedCount++;
 
     const resp = page.content_responsibility || "Unassigned";
     byResponsibility[resp] = (byResponsibility[resp] || 0) + 1;
@@ -104,10 +107,11 @@ export async function GET(
 
   const stats: MigrationStats = {
     totalPages: allPages.length,
-    byStatus: byStatus as MigrationStats["byStatus"],
+    byStatus,
     byResponsibility,
     byPageStyle,
     byMigrationOwner,
+    blockedCount,
     recentEdits: edits as MigrationStats["recentEdits"],
     recentComments: comments as MigrationStats["recentComments"],
   };

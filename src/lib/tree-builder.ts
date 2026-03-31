@@ -101,6 +101,8 @@ export function buildTree(pages: PageRow[]): PageNode[] {
       migrationOwner: page.migration_owner,
       migrator: page.migrator,
       mcTemplate: page.mc_template,
+      isBlocked: page.is_blocked ?? false,
+      blockedReason: page.blocked_reason ?? null,
       childCount: 0,
       children: [],
     };

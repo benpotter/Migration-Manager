@@ -35,6 +35,7 @@ import {
   ChevronsRight,
   Columns3,
   Search,
+  ArrowRight,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -46,19 +47,30 @@ import {
 } from "@/components/ui/select";
 import { createColumns } from "./columns";
 import { StatusFilter, PageStyleFilter, ResponsibilityFilter } from "./filters";
+import { PipelineSummary } from "./PipelineSummary";
 import { QUICK_FILTERS, MIGRATION_STATUSES, STATUS_CONFIG, CONTENT_RESPONSIBILITIES, PAGE_STYLES } from "@/lib/constants";
+import { getNextStage } from "@/lib/workflow";
+import type { WorkflowStage } from "@/lib/workflow";
 import { toast } from "sonner";
-import type { PageRow, MigrationStatus, PageStyle, ContentResponsibility } from "@/types";
+import type { PageRow, PageStyle, ContentResponsibility } from "@/types";
 
 interface PageTableProps {
   data: PageRow[];
   onOpenDetail: (pageId: string) => void;
   onDataChange?: () => void;
   projectId?: string;
+  /** Dynamic workflow stages from project context */
+  stages?: WorkflowStage[];
 }
 
-export function PageTable({ data, onOpenDetail, onDataChange, projectId }: PageTableProps) {
+export function PageTable({ data, onOpenDetail, onDataChange, projectId, stages }: PageTableProps) {
   const buildUrl = (path: string) => projectId ? `/api/p/${projectId}${path}` : `/api${path}`;
+
+  const statusList = stages ? stages.map((s) => s.id) : MIGRATION_STATUSES;
+  const getStatusLabel = (id: string) => {
+    if (stages) return stages.find((s) => s.id === id)?.label ?? id;
+    return STATUS_CONFIG[id]?.label ?? id;
+  };
 
   const [sorting, setSorting] = useState<SortingState>([{ id: "page_id", desc: false }]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -67,9 +79,10 @@ export function PageTable({ data, onOpenDetail, onDataChange, projectId }: PageT
   const [globalFilter, setGlobalFilter] = useState("");
 
   // Filter state for custom multi-select filters
-  const [statusFilter, setStatusFilter] = useState<MigrationStatus[]>([]);
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [pageStyleFilter, setPageStyleFilter] = useState<PageStyle[]>([]);
   const [responsibilityFilter, setResponsibilityFilter] = useState<ContentResponsibility[]>([]);
+  const [blockedFilter, setBlockedFilter] = useState(false);
 
   const columns = useMemo(() => createColumns(onOpenDetail, projectId), [onOpenDetail, projectId]);
 
@@ -79,6 +92,9 @@ export function PageTable({ data, onOpenDetail, onDataChange, projectId }: PageT
 
     if (statusFilter.length > 0) {
       result = result.filter((row) => statusFilter.includes(row.status));
+    }
+    if (blockedFilter) {
+      result = result.filter((row) => row.is_blocked);
     }
     if (pageStyleFilter.length > 0) {
       result = result.filter(
@@ -94,7 +110,7 @@ export function PageTable({ data, onOpenDetail, onDataChange, projectId }: PageT
     }
 
     return result;
-  }, [data, statusFilter, pageStyleFilter, responsibilityFilter]);
+  }, [data, statusFilter, blockedFilter, pageStyleFilter, responsibilityFilter]);
 
   const table = useReactTable({
     data: filteredData,
@@ -129,14 +145,18 @@ export function PageTable({ data, onOpenDetail, onDataChange, projectId }: PageT
       // Reset existing filters
       setStatusFilter([]);
       setResponsibilityFilter([]);
+      setBlockedFilter(false);
 
       if ("status" in filter.filter) {
-        setStatusFilter([...filter.filter.status] as MigrationStatus[]);
+        setStatusFilter([...filter.filter.status] as string[]);
       }
       if ("contentResponsibility" in filter.filter) {
         setResponsibilityFilter(
           [...filter.filter.contentResponsibility] as ContentResponsibility[]
         );
+      }
+      if ("showBlocked" in filter.filter) {
+        setBlockedFilter(true);
       }
     },
     []
@@ -146,6 +166,7 @@ export function PageTable({ data, onOpenDetail, onDataChange, projectId }: PageT
     setStatusFilter([]);
     setPageStyleFilter([]);
     setResponsibilityFilter([]);
+    setBlockedFilter(false);
     setGlobalFilter("");
     setColumnFilters([]);
   }, []);
@@ -167,8 +188,69 @@ export function PageTable({ data, onOpenDetail, onDataChange, projectId }: PageT
     }
   };
 
-  const handleBatchStatusUpdate = async (newStatus: MigrationStatus) => {
-    await handleBatchUpdate({ status: newStatus }, STATUS_CONFIG[newStatus]?.label ?? newStatus);
+  const handleBatchStatusUpdate = async (newStatus: string) => {
+    await handleBatchUpdate({ status: newStatus }, getStatusLabel(newStatus));
+  };
+
+  const handleAdvanceSelected = async () => {
+    if (!stages) {
+      toast.error("Workflow stages not available");
+      return;
+    }
+    const pageIds: string[] = [];
+    const updates: { id: string; status: string }[] = [];
+    let skippedBlocked = 0;
+    let skippedFinal = 0;
+
+    for (const row of selectedRows) {
+      const page = row.original;
+      if (page.is_blocked) {
+        skippedBlocked++;
+        continue;
+      }
+      const next = getNextStage(stages, page.status);
+      if (!next) {
+        skippedFinal++;
+        continue;
+      }
+      pageIds.push(page.id);
+      updates.push({ id: page.id, status: next.id });
+    }
+
+    if (updates.length === 0) {
+      const reasons: string[] = [];
+      if (skippedBlocked > 0) reasons.push(`${skippedBlocked} blocked`);
+      if (skippedFinal > 0) reasons.push(`${skippedFinal} at final stage`);
+      toast.info(`No pages to advance: ${reasons.join(", ")}`);
+      return;
+    }
+
+    // Batch advance: group by target status
+    const byTarget: Record<string, string[]> = {};
+    for (const u of updates) {
+      if (!byTarget[u.status]) byTarget[u.status] = [];
+      byTarget[u.status].push(u.id);
+    }
+
+    try {
+      for (const [status, ids] of Object.entries(byTarget)) {
+        const res = await fetch(buildUrl("/pages/batch"), {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pageIds: ids, updates: { status } }),
+        });
+        if (!res.ok) throw new Error("Batch update failed");
+      }
+
+      let msg = `Advanced ${updates.length} page(s)`;
+      if (skippedBlocked > 0) msg += `, ${skippedBlocked} skipped (blocked)`;
+      if (skippedFinal > 0) msg += `, ${skippedFinal} skipped (final stage)`;
+      toast.success(msg);
+      setRowSelection({});
+      onDataChange?.();
+    } catch {
+      toast.error("Failed to advance pages");
+    }
   };
 
   const handleBatchDelete = async () => {
@@ -193,10 +275,40 @@ export function PageTable({ data, onOpenDetail, onDataChange, projectId }: PageT
     statusFilter.length > 0 ||
     pageStyleFilter.length > 0 ||
     responsibilityFilter.length > 0 ||
+    blockedFilter ||
     globalFilter.length > 0;
+
+  // Pipeline summary data
+  const pipelineData = useMemo(() => {
+    const counts: Record<string, number> = {};
+    let blocked = 0;
+    for (const row of data) {
+      counts[row.status] = (counts[row.status] || 0) + 1;
+      if (row.is_blocked) blocked++;
+    }
+    return { counts, blocked, total: data.length };
+  }, [data]);
 
   return (
     <div className="flex flex-col gap-4">
+      {/* Pipeline Summary Bar */}
+      {stages && data.length > 0 && (
+        <PipelineSummary
+          stages={stages}
+          counts={pipelineData.counts}
+          blockedCount={pipelineData.blocked}
+          total={pipelineData.total}
+          onFilterStatus={(status) => {
+            setStatusFilter([status]);
+            setBlockedFilter(false);
+          }}
+          onFilterBlocked={() => {
+            setStatusFilter([]);
+            setBlockedFilter(true);
+          }}
+        />
+      )}
+
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2">
         {/* Global search */}
@@ -226,7 +338,14 @@ export function PageTable({ data, onOpenDetail, onDataChange, projectId }: PageT
         </div>
 
         {/* Column-level filters */}
-        <StatusFilter value={statusFilter} onChange={setStatusFilter} />
+        <StatusFilter
+          value={statusFilter}
+          onChange={setStatusFilter}
+          showBlockedFilter
+          blockedActive={blockedFilter}
+          onBlockedToggle={setBlockedFilter}
+          stages={stages}
+        />
         <PageStyleFilter value={pageStyleFilter} onChange={setPageStyleFilter} />
         <ResponsibilityFilter
           value={responsibilityFilter}
@@ -273,16 +392,27 @@ export function PageTable({ data, onOpenDetail, onDataChange, projectId }: PageT
       {selectedCount > 0 && (
         <div className="flex items-center gap-2 rounded-md bg-muted p-2 text-sm flex-wrap">
           <span className="font-medium">{selectedCount} row(s) selected</span>
+          {stages && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5"
+              onClick={handleAdvanceSelected}
+            >
+              <ArrowRight className="h-3.5 w-3.5" />
+              Advance Selected
+            </Button>
+          )}
           <Select
-            onValueChange={(val) => handleBatchStatusUpdate(val as MigrationStatus)}
+            onValueChange={(val) => handleBatchStatusUpdate(val)}
           >
             <SelectTrigger className="w-[160px] h-8">
               <SelectValue placeholder="Set Status..." />
             </SelectTrigger>
             <SelectContent>
-              {MIGRATION_STATUSES.map((status) => (
+              {statusList.map((status) => (
                 <SelectItem key={status} value={status}>
-                  {STATUS_CONFIG[status]?.label ?? status}
+                  {getStatusLabel(status)}
                 </SelectItem>
               ))}
             </SelectContent>

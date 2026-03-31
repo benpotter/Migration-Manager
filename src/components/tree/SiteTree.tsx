@@ -46,18 +46,6 @@ function collectAllPageIds(nodes: PageNode[]): Set<string> {
   return ids;
 }
 
-function collectPageIdsToDepth(nodes: PageNode[], maxDepth: number): Set<string> {
-  const ids = new Set<string>();
-  function walk(node: PageNode, depth: number) {
-    if (depth < maxDepth) {
-      ids.add(node.pageId);
-      node.children.forEach((child) => walk(child, depth + 1));
-    }
-  }
-  nodes.forEach((n) => walk(n, 0));
-  return ids;
-}
-
 function nodeMatchesSearch(node: PageNode, search: string): boolean {
   const lower = search.toLowerCase();
   return (
@@ -129,7 +117,7 @@ export function SiteTree({
   enableDnd = false,
 }: SiteTreeProps) {
   const [expanded, setExpanded] = useState<Set<string>>(() => {
-    return collectPageIdsToDepth(tree, 1);
+    return collectAllPageIds(tree);
   });
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
@@ -181,8 +169,6 @@ export function SiteTree({
 
   const handleExpandAll = useCallback(() => setExpanded(collectAllPageIds(tree)), [tree]);
   const handleCollapseAll = useCallback(() => setExpanded(new Set()), []);
-  const handleExpandToDepth = useCallback((depth: number) => setExpanded(collectPageIdsToDepth(tree, depth)), [tree]);
-
   const handleExport = useCallback(() => {
     const blob = new Blob([JSON.stringify(tree, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -316,7 +302,6 @@ export function SiteTree({
         onMigrationOwnerFilterChange={setMigrationOwnerFilter}
         onExpandAll={handleExpandAll}
         onCollapseAll={handleCollapseAll}
-        onExpandToDepth={handleExpandToDepth}
         onExport={handleExport}
         onAddPage={onAddPage}
       />

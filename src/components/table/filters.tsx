@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Filter } from "lucide-react";
+import { Filter, Ban } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuCheckboxItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -16,15 +17,36 @@ import {
   PAGE_STYLES,
   CONTENT_RESPONSIBILITIES,
 } from "@/lib/constants";
-import type { MigrationStatus, ContentResponsibility, PageStyle } from "@/types";
+import type { ContentResponsibility, PageStyle } from "@/types";
+import type { WorkflowStage } from "@/lib/workflow";
 
 interface StatusFilterProps {
-  value: MigrationStatus[];
-  onChange: (value: MigrationStatus[]) => void;
+  value: string[];
+  onChange: (value: string[]) => void;
+  showBlockedFilter?: boolean;
+  blockedActive?: boolean;
+  onBlockedToggle?: (val: boolean) => void;
+  /** Dynamic stages from project context */
+  stages?: WorkflowStage[];
 }
 
-export function StatusFilter({ value, onChange }: StatusFilterProps) {
-  const toggle = (status: MigrationStatus) => {
+export function StatusFilter({
+  value,
+  onChange,
+  showBlockedFilter,
+  blockedActive,
+  onBlockedToggle,
+  stages,
+}: StatusFilterProps) {
+  const statusList = stages ? stages.map((s) => s.id) : MIGRATION_STATUSES;
+  const getLabel = (id: string) => {
+    if (stages) {
+      return stages.find((s) => s.id === id)?.label ?? id;
+    }
+    return STATUS_CONFIG[id]?.label ?? id;
+  };
+
+  const toggle = (status: string) => {
     if (value.includes(status)) {
       onChange(value.filter((s) => s !== status));
     } else {
@@ -38,23 +60,35 @@ export function StatusFilter({ value, onChange }: StatusFilterProps) {
         <Button variant="outline" size="sm" className="gap-1.5">
           <Filter className="h-3.5 w-3.5" />
           Status
-          {value.length > 0 && (
+          {(value.length > 0 || blockedActive) && (
             <span className="ml-1 rounded-full bg-primary text-primary-foreground px-1.5 py-0.5 text-[10px]">
-              {value.length}
+              {value.length + (blockedActive ? 1 : 0)}
             </span>
           )}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-48">
-        {MIGRATION_STATUSES.map((status) => (
+        {statusList.map((status) => (
           <DropdownMenuCheckboxItem
             key={status}
             checked={value.includes(status)}
             onCheckedChange={() => toggle(status)}
           >
-            {STATUS_CONFIG[status]?.label ?? status}
+            {getLabel(status)}
           </DropdownMenuCheckboxItem>
         ))}
+        {showBlockedFilter && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuCheckboxItem
+              checked={blockedActive ?? false}
+              onCheckedChange={() => onBlockedToggle?.(!blockedActive)}
+            >
+              <Ban className="h-3.5 w-3.5 mr-1.5 text-red-500" />
+              Blocked
+            </DropdownMenuCheckboxItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

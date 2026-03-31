@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
   let query = supabase.from("pages").select("*", { count: "exact" });
 
   if (!showArchived) {
-    query = query.eq("is_archived", false);
+    query = query.or("is_archived.is.null,is_archived.eq.false");
   }
 
   if (search) {

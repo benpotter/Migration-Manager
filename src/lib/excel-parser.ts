@@ -3,7 +3,8 @@ import { EXCEL_COLUMN_MAP } from "./constants";
 import { inferParentFromSet } from "./tree-builder";
 import type { ParsedExcelRow, ImportError } from "@/types";
 
-/** Map Excel/SmartSheet status labels to internal status values */
+/** Map Excel/SmartSheet status labels to internal status values.
+ *  "blocked" is no longer a status — it's mapped to is_blocked flag during import. */
 const STATUS_NORMALIZE: Record<string, string> = {
   "not started": "not_started",
   "drafting": "content_drafting",
@@ -24,7 +25,7 @@ const STATUS_NORMALIZE: Record<string, string> = {
   "content qa": "qa_content",
   "link qa": "qa_links",
   "published": "published",
-  "blocked": "blocked",
+  "blocked": "__blocked__",
   "needs edits": "content_drafting",
   "mkt. checkpoint": "content_review",
 };
@@ -173,6 +174,14 @@ export function parseExcelBuffer(buffer: Buffer | ArrayBuffer): ExcelParseResult
     let pageStyle = get("page_style");
     if (pageStyle === "N/A") pageStyle = null;
 
+    // Handle "blocked" → flag conversion
+    let normalizedStatus = normalizeStatus(get("status"));
+    let isBlocked = false;
+    if (normalizedStatus === "__blocked__") {
+      isBlocked = true;
+      normalizedStatus = "not_started"; // default stage when blocked status imported
+    }
+
     const parsedRow: ParsedExcelRow = {
       page_id: pageId,
       name: name || `Unnamed Page (${pageId})`,
@@ -186,11 +195,12 @@ export function parseExcelBuffer(buffer: Buffer | ArrayBuffer): ExcelParseResult
       content_responsibility: contentResponsibility,
       content_author: get("content_author"),
       content_approver: get("content_approver"),
-      status: normalizeStatus(get("status")),
+      status: normalizedStatus,
       migration_owner: migrationOwner,
       migrator: get("migrator"),
       parent_page_id: parentPageId,
       depth,
+      is_blocked: isBlocked,
     };
 
     rows.push(parsedRow);

@@ -43,7 +43,7 @@ export function DraggableTreeNode({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "relative",
+        "relative group/drag",
         isDragging && "opacity-50 z-50",
         isOver && "bg-primary/5"
       )}
@@ -59,7 +59,7 @@ export function DraggableTreeNode({
           <button
             {...attributes}
             {...listeners}
-            className="shrink-0 h-6 w-4 flex items-center justify-center cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
+            className="shrink-0 h-6 w-4 flex items-center justify-center cursor-grab active:cursor-grabbing opacity-30 group-hover/drag:opacity-100 transition-opacity"
             style={{ marginLeft: `${depth * 20}px` }}
           >
             <GripVertical className="h-3 w-3 text-muted-foreground" />

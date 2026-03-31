@@ -4,10 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useProject } from "@/contexts/project-context";
 import { cn } from "@/lib/utils";
-import { Settings, Users, Database, AlertTriangle } from "lucide-react";
+import { Settings, Users, Database, AlertTriangle, Workflow } from "lucide-react";
 
 const SETTINGS_NAV = [
   { href: "", label: "General", icon: Settings },
+  { href: "/workflow", label: "Workflow", icon: Workflow },
   { href: "/members", label: "Members", icon: Users },
   { href: "/data-mode", label: "Data Mode", icon: Database },
   { href: "/danger", label: "Danger Zone", icon: AlertTriangle },

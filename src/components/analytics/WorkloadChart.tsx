@@ -11,7 +11,7 @@ import {
   Legend,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { PageRow, MigrationStatus } from "@/types";
+import type { PageRow } from "@/types";
 
 const CHART_STATUS_GROUPS = [
   { key: "not_started", label: "Not Started", color: "#9ca3af" },
@@ -21,11 +21,10 @@ const CHART_STATUS_GROUPS = [
   { key: "blocked", label: "Blocked", color: "#ef4444" },
 ] as const;
 
-function categorizeStatus(status: MigrationStatus): string {
+function categorizeStatus(status: string): string {
   if (status === "not_started") return "not_started";
   if (status === "published") return "published";
-  if (status === "blocked") return "blocked";
-  if (status.startsWith("qa_")) return "qa";
+  if (status.startsWith("qa")) return "qa";
   return "in_progress";
 }
 
@@ -48,8 +47,13 @@ export function WorkloadChart({ pages }: WorkloadChartProps) {
       });
     }
     const counts = migratorMap.get(migrator)!;
-    const category = categorizeStatus(page.status);
-    counts[category] = (counts[category] ?? 0) + 1;
+    // Blocked is now a flag, not a status
+    if (page.is_blocked) {
+      counts["blocked"] = (counts["blocked"] ?? 0) + 1;
+    } else {
+      const category = categorizeStatus(page.status);
+      counts[category] = (counts[category] ?? 0) + 1;
+    }
   }
 
   const data = Array.from(migratorMap.entries())

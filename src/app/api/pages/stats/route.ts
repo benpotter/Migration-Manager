@@ -27,7 +27,7 @@ export async function GET() {
     const { data: batch, error: batchError } = await supabase
       .from("pages")
       .select("id, status, content_responsibility, page_style, migration_owner, name")
-      .eq("is_archived", false)
+      .or("is_archived.is.null,is_archived.eq.false")
       .range(from, from + batchSize - 1);
 
     if (batchError) {
@@ -99,6 +99,7 @@ export async function GET() {
     byResponsibility,
     byPageStyle,
     byMigrationOwner,
+    blockedCount: 0,
     recentEdits: edits as MigrationStats["recentEdits"],
     recentComments: comments as MigrationStats["recentComments"],
   };

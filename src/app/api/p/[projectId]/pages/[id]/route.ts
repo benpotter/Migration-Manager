@@ -75,6 +75,7 @@ export async function PATCH(
     "design_file_url", "content_notes", "content_responsibility", "content_author",
     "content_approver", "status", "migration_owner", "migrator", "mc_template",
     "parent_page_id", "depth", "sort_order", "is_archived",
+    "is_blocked", "blocked_reason", "blocked_at",
   ];
 
   const editEntries: {

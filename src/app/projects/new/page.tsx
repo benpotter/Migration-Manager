@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import type { DataMode } from "@/types";
+import { WORKFLOW_TEMPLATES, type WorkflowTemplateKey } from "@/lib/workflow";
 
 const PROJECT_COLORS = [
   "#3B82F6", "#EF4444", "#10B981", "#F59E0B", "#8B5CF6",
@@ -77,6 +78,7 @@ export default function NewProjectPage() {
   const [slugManual, setSlugManual] = useState(false);
   const [dataMode, setDataMode] = useState<DataMode>("import");
   const [color, setColor] = useState(PROJECT_COLORS[0]);
+  const [workflowTemplate, setWorkflowTemplate] = useState<WorkflowTemplateKey>("full_migration");
   const [members, setMembers] = useState<InviteMember[]>([]);
   const [newMemberEmail, setNewMemberEmail] = useState("");
   const [newMemberRole, setNewMemberRole] = useState<"admin" | "editor" | "viewer">("editor");
@@ -123,6 +125,9 @@ export default function NewProjectPage() {
           description: description.trim() || null,
           data_mode: dataMode,
           color,
+          settings: {
+            workflow: { stages: WORKFLOW_TEMPLATES[workflowTemplate].stages },
+          },
         }),
       });
 
@@ -267,7 +272,65 @@ export default function NewProjectPage() {
           </CardContent>
         </Card>
 
-        {/* Section 3: Team Members */}
+        {/* Section 3: Workflow Template */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Workflow Template</CardTitle>
+            <CardDescription>
+              Choose a starting workflow. You can customize stages later in project settings.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {(Object.entries(WORKFLOW_TEMPLATES) as [WorkflowTemplateKey, typeof WORKFLOW_TEMPLATES[WorkflowTemplateKey]][]).map(
+              ([key, template]) => {
+                const isSelected = workflowTemplate === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setWorkflowTemplate(key)}
+                    className={`w-full flex items-start gap-3 rounded-lg border p-4 text-left transition-colors ${
+                      isSelected
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:bg-muted/50"
+                    }`}
+                  >
+                    <div className={`mt-0.5 rounded-full border-2 h-4 w-4 flex items-center justify-center shrink-0 ${
+                      isSelected ? "border-primary" : "border-muted-foreground/40"
+                    }`}>
+                      {isSelected && <div className="h-2 w-2 rounded-full bg-primary" />}
+                    </div>
+                    <div>
+                      <div className="font-medium text-sm">{template.label}</div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {template.description}
+                      </p>
+                      <div className="flex items-center gap-1 mt-2 flex-wrap">
+                        {template.stages.map((stage, i) => (
+                          <span
+                            key={stage.id}
+                            className="inline-flex items-center gap-1 text-[10px]"
+                          >
+                            <span
+                              className="h-2 w-2 rounded-full"
+                              style={{ backgroundColor: stage.color }}
+                            />
+                            {stage.label}
+                            {i < template.stages.length - 1 && (
+                              <span className="text-muted-foreground mx-0.5">&rarr;</span>
+                            )}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </button>
+                );
+              }
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Section 4: Team Members */}
         <Card>
           <CardHeader>
             <button

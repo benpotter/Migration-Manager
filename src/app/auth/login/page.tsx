@@ -28,6 +28,8 @@ function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,6 +102,28 @@ function LoginForm() {
     setLoading(false);
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+    setLoading(true);
+
+    const supabase = createClient();
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+      resetEmail,
+      { redirectTo: `${window.location.origin}/auth/callback?type=recovery` }
+    );
+
+    if (resetError) {
+      setError(resetError.message);
+      setLoading(false);
+      return;
+    }
+
+    setSuccess("Check your email for a password reset link.");
+    setLoading(false);
+  };
+
   const displayError =
     error ||
     (urlError === "domain"
@@ -167,6 +191,18 @@ function LoginForm() {
                 >
                   {loading ? "Signing in..." : "Sign In"}
                 </Button>
+                <button
+                  type="button"
+                  className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={() => {
+                    setShowForgotPassword(true);
+                    setResetEmail(email);
+                    setError(null);
+                    setSuccess(null);
+                  }}
+                >
+                  Forgot password?
+                </button>
               </form>
             </TabsContent>
 
@@ -229,6 +265,47 @@ function LoginForm() {
               </form>
             </TabsContent>
           </Tabs>
+
+          {showForgotPassword && (
+            <div className="mt-4 border-t pt-4">
+              <h3 className="text-sm font-medium mb-2">Reset Password</h3>
+              <form onSubmit={handleForgotPassword} className="space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="reset-email">Email</Label>
+                  <Input
+                    id="reset-email"
+                    type="email"
+                    placeholder="you@madcollective.com"
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    type="submit"
+                    size="sm"
+                    disabled={loading}
+                    className="flex-1"
+                  >
+                    {loading ? "Sending..." : "Send Reset Link"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setShowForgotPassword(false);
+                      setError(null);
+                      setSuccess(null);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -109,7 +109,7 @@ export function createColumns(
       header: "Slug",
       cell: ({ row }) => (
         <span className="text-xs text-muted-foreground font-mono truncate max-w-[200px] block">
-          {row.getValue("slug") || "-"}
+          {row.getValue("slug") ? `/${row.getValue("slug")}` : "-"}
         </span>
       ),
       size: 200,
@@ -161,7 +161,7 @@ export function createColumns(
           <ArrowUpDown className="ml-1 h-3 w-3" />
         </Button>
       ),
-      cell: ({ row }) => <StatusBadge status={row.getValue("status")} />,
+      cell: ({ row }) => <StatusBadge status={row.getValue("status")} isBlocked={row.original.is_blocked} />,
       filterFn: (row, id, filterValue: string[]) => {
         if (!filterValue || filterValue.length === 0) return true;
         return filterValue.includes(row.getValue(id) as string);

@@ -11,91 +11,25 @@ import {
 } from "lucide-react";
 
 // ── Status ──────────────────────────────────────────────
-export const MIGRATION_STATUSES = [
-  "not_started",
-  "content_drafting",
-  "content_review",
-  "content_approved",
-  "migration_in_progress",
-  "migration_complete",
-  "qa_design",
-  "qa_content",
-  "qa_links",
-  "published",
-  "blocked",
-] as const;
+// Default workflow stages (without "blocked" — now a flag on pages).
+// Components should prefer reading stages from ProjectContext.workflowStages.
+// This constant is kept as a global fallback for non-project contexts.
+import { DEFAULT_WORKFLOW_STAGES, buildStatusConfig } from "./workflow";
+
+export const MIGRATION_STATUSES = DEFAULT_WORKFLOW_STAGES.map((s) => s.id);
 
 export const STATUS_CONFIG: Record<
   string,
   { bg: string; text: string; label: string; order: number }
-> = {
-  not_started: {
-    bg: "bg-gray-100",
-    text: "text-gray-700",
-    label: "Not Started",
-    order: 0,
-  },
-  content_drafting: {
-    bg: "bg-blue-100",
-    text: "text-blue-700",
-    label: "Drafting",
-    order: 1,
-  },
-  content_review: {
-    bg: "bg-yellow-100",
-    text: "text-yellow-700",
-    label: "In Review",
-    order: 2,
-  },
-  content_approved: {
-    bg: "bg-green-100",
-    text: "text-green-700",
-    label: "Approved",
-    order: 3,
-  },
-  migration_in_progress: {
-    bg: "bg-purple-100",
-    text: "text-purple-700",
-    label: "Migrating",
-    order: 4,
-  },
-  migration_complete: {
-    bg: "bg-indigo-100",
-    text: "text-indigo-700",
-    label: "Migrated",
-    order: 5,
-  },
-  qa_design: {
-    bg: "bg-orange-100",
-    text: "text-orange-700",
-    label: "Design QA",
-    order: 6,
-  },
-  qa_content: {
-    bg: "bg-amber-100",
-    text: "text-amber-700",
-    label: "Content QA",
-    order: 7,
-  },
-  qa_links: {
-    bg: "bg-teal-100",
-    text: "text-teal-700",
-    label: "Link QA",
-    order: 8,
-  },
-  published: {
-    bg: "bg-emerald-100",
-    text: "text-emerald-700",
-    label: "Published",
-    order: 9,
-  },
-  blocked: {
-    bg: "bg-red-100",
-    text: "text-red-700",
-    label: "Blocked",
-    order: 10,
-  },
-};
+> = buildStatusConfig(DEFAULT_WORKFLOW_STAGES);
+
+// Phase groupings for pipeline visualization
+export const WORKFLOW_PHASES = [
+  { id: "content", label: "Content" },
+  { id: "migration", label: "Migration" },
+  { id: "qa", label: "QA" },
+  { id: "complete", label: "Complete" },
+] as const;
 
 // ── Page Styles ─────────────────────────────────────────
 export const PAGE_STYLES = [
@@ -177,7 +111,7 @@ export const QUICK_FILTERS = [
     label: "RCC Content",
     filter: { contentResponsibility: ["RCC"] },
   },
-  { id: "blocked", label: "Blocked", filter: { status: ["blocked"] } },
+  { id: "blocked", label: "Blocked", filter: { showBlocked: true } },
   {
     id: "ready_for_qa",
     label: "Ready for QA",

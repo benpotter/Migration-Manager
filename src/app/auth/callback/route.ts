@@ -14,6 +14,8 @@ export async function GET(request: Request) {
 
   const supabase = await createServerSupabaseClient();
 
+  const isRecovery = type === "recovery";
+
   if (tokenHash && type) {
     const { error } = await supabase.auth.verifyOtp({
       token_hash: tokenHash,
@@ -75,6 +77,10 @@ export async function GET(request: Request) {
       .from("user_profiles")
       .update({ role })
       .eq("id", user.id);
+  }
+
+  if (isRecovery) {
+    return NextResponse.redirect(`${origin}/auth/reset-password`);
   }
 
   return NextResponse.redirect(`${origin}/`);

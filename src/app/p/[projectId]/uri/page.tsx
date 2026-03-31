@@ -1,38 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { URIPatternView } from "@/components/uri/URIPatternView";
 import { PageDetailPanel } from "@/components/detail/PageDetailPanel";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useProject } from "@/contexts/project-context";
+import { useProjectData } from "@/hooks/use-project-data";
 import { usePageTitle } from "@/hooks/use-page-title";
-import type { PageNode } from "@/types";
 
 export default function ProjectURIPage() {
   const { projectId, project } = useProject();
+  const { tree, pagesLoading, pagesError } = useProjectData();
   usePageTitle("URI View", project.name);
-  const [tree, setTree] = useState<PageNode[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [detailPageId, setDetailPageId] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function fetchTree() {
-      try {
-        const res = await fetch(`/api/p/${projectId}/pages/tree`);
-        if (!res.ok) throw new Error("Failed to fetch tree data");
-        const json = await res.json();
-        setTree(json.data ?? []);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Unknown error");
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchTree();
-  }, [projectId]);
-
-  if (loading) {
+  if (pagesLoading) {
     return (
       <div className="p-6 space-y-3">
         <Skeleton className="h-10 w-full" />
@@ -45,12 +27,12 @@ export default function ProjectURIPage() {
     );
   }
 
-  if (error) {
+  if (pagesError) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
         <div className="text-center space-y-2">
           <p className="text-destructive font-medium">Error loading URI data</p>
-          <p className="text-sm text-muted-foreground">{error}</p>
+          <p className="text-sm text-muted-foreground">{pagesError}</p>
         </div>
       </div>
     );

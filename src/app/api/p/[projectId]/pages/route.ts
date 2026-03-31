@@ -15,6 +15,39 @@ export async function GET(
   const { supabase } = result;
 
   const sp = request.nextUrl.searchParams;
+
+  // ?all=true: return all non-archived pages without pagination
+  if (sp.get("all") === "true") {
+    const allPages: PageRow[] = [];
+    const batchSize = 1000;
+    let from = 0;
+    let keepFetching = true;
+
+    while (keepFetching) {
+      const { data: batch, error: batchError } = await supabase
+        .from("pages")
+        .select("*")
+        .eq("project_id", projectId)
+        .or("is_archived.is.null,is_archived.eq.false")
+        .order("sort_order", { ascending: true })
+        .range(from, from + batchSize - 1);
+
+      if (batchError) {
+        return NextResponse.json({ error: batchError.message }, { status: 500 });
+      }
+
+      if (batch && batch.length > 0) {
+        allPages.push(...(batch as PageRow[]));
+        from += batchSize;
+        if (batch.length < batchSize) keepFetching = false;
+      } else {
+        keepFetching = false;
+      }
+    }
+
+    return NextResponse.json({ data: allPages });
+  }
+
   const search = sp.get("search") || "";
   const status = sp.getAll("status");
   const pageStyle = sp.getAll("pageStyle");
@@ -32,7 +65,7 @@ export async function GET(
     .eq("project_id", projectId);
 
   if (!showArchived) {
-    query = query.eq("is_archived", false);
+    query = query.or("is_archived.is.null,is_archived.eq.false");
   }
 
   if (search) {

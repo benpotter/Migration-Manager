@@ -77,18 +77,14 @@ export function Navbar() {
     ? projects.find((p) => p.id === currentProjectId)
     : null;
 
-  // Build nav links: project-scoped or global
+  // Build nav links: only show when a project is selected
   const navLinks = currentProjectId
     ? BASE_NAV_LINKS.map((link) => ({
         href: `/p/${currentProjectId}${link.path}`,
         label: link.label,
         icon: link.icon,
       }))
-    : BASE_NAV_LINKS.map((link) => ({
-        href: link.path || "/",
-        label: link.label,
-        icon: link.icon,
-      }));
+    : [];
 
   const importHref = currentProjectId
     ? `/p/${currentProjectId}/admin/import`
@@ -135,23 +131,30 @@ export function Navbar() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-56">
-                {projects.map((project) => (
-                  <DropdownMenuItem key={project.id} asChild>
-                    <Link
-                      href={`/p/${project.id}`}
-                      className="flex items-center gap-2"
-                    >
-                      <div
-                        className="h-2.5 w-2.5 rounded-full shrink-0"
-                        style={{ backgroundColor: project.color || "#6b7280" }}
-                      />
-                      <span className="truncate">{project.name}</span>
-                      {project.id === currentProjectId && (
-                        <span className="ml-auto text-xs text-muted-foreground">Current</span>
-                      )}
-                    </Link>
-                  </DropdownMenuItem>
-                ))}
+                {projects.map((project) => {
+                  // Preserve current sub-path when switching projects
+                  const subPath = currentProjectId
+                    ? pathname.replace(`/p/${currentProjectId}`, "")
+                    : "";
+                  const href = `/p/${project.id}${subPath}`;
+                  return (
+                    <DropdownMenuItem key={project.id} asChild>
+                      <Link
+                        href={href}
+                        className="flex items-center gap-2"
+                      >
+                        <div
+                          className="h-2.5 w-2.5 rounded-full shrink-0"
+                          style={{ backgroundColor: project.color || "#6b7280" }}
+                        />
+                        <span className="truncate">{project.name}</span>
+                        {project.id === currentProjectId && (
+                          <span className="ml-auto text-xs text-muted-foreground">Current</span>
+                        )}
+                      </Link>
+                    </DropdownMenuItem>
+                  );
+                })}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link href="/projects" className="flex items-center gap-2">
@@ -252,34 +255,36 @@ export function Navbar() {
           </Button>
 
           {/* User avatar dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="gap-2 rounded-full px-2">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="text-xs">
-                    {getInitials(user?.name)}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="hidden md:inline text-sm font-medium">
-                  {user?.name ?? user?.email ?? ""}
-                </span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <div className="px-2 py-1.5">
-                <p className="text-sm font-medium">{user?.name ?? "User"}</p>
-                <p className="text-xs text-muted-foreground">{user?.email}</p>
-              </div>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={handleSignOut}
-                className="flex items-center gap-2 text-destructive"
-              >
-                <LogOut className="h-4 w-4" />
-                Sign Out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="gap-2 rounded-full px-2">
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback className="text-xs">
+                      {getInitials(user?.name)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="hidden md:inline text-sm font-medium">
+                    {user?.name ?? user?.email ?? ""}
+                  </span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <div className="px-2 py-1.5">
+                  <p className="text-sm font-medium">{user?.name ?? "User"}</p>
+                  <p className="text-xs text-muted-foreground">{user?.email}</p>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={handleSignOut}
+                  className="flex items-center gap-2 text-destructive"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : null}
         </div>
       </div>
     </header>

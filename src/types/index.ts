@@ -1,16 +1,6 @@
-// Status enum
-export type MigrationStatus =
-  | "not_started"
-  | "content_drafting"
-  | "content_review"
-  | "content_approved"
-  | "migration_in_progress"
-  | "migration_complete"
-  | "qa_design"
-  | "qa_content"
-  | "qa_links"
-  | "published"
-  | "blocked";
+// Status type — loosened to string to support custom workflow stages per project.
+// The default stages are defined in src/lib/workflow.ts (DEFAULT_WORKFLOW_STAGES).
+export type MigrationStatus = string;
 
 // Page style enum
 export type PageStyle =
@@ -50,6 +40,10 @@ export interface PageRow {
   depth: number;
   sort_order: number;
   is_archived: boolean;
+  // Blocked flag fields
+  is_blocked: boolean;
+  blocked_reason: string | null;
+  blocked_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -66,6 +60,8 @@ export interface PageNode {
   migrationOwner: ContentResponsibility | null;
   migrator: string | null;
   mcTemplate: string | null;
+  isBlocked: boolean;
+  blockedReason: string | null;
   childCount: number;
   children: PageNode[];
 }
@@ -90,6 +86,7 @@ export interface FilterState {
   contentResponsibility: ContentResponsibility[];
   migrationOwner: ContentResponsibility[];
   showArchived: boolean;
+  showBlocked?: boolean;
 }
 
 // Import result
@@ -163,6 +160,8 @@ export interface ParsedExcelRow {
   migrator: string | null;
   parent_page_id: string | null;
   depth: number;
+  is_blocked?: boolean;
+  blocked_reason?: string | null;
 }
 
 // URI conflict detection
@@ -198,12 +197,27 @@ export interface URIExportData {
 // Stats for dashboard
 export interface MigrationStats {
   totalPages: number;
-  byStatus: Record<MigrationStatus, number>;
+  byStatus: Record<string, number>;
   byResponsibility: Record<string, number>;
   byPageStyle: Record<string, number>;
   byMigrationOwner: Record<string, number>;
+  blockedCount: number;
   recentEdits: (PageEdit & { page_name?: string })[];
   recentComments: (Comment & { page_name?: string })[];
+}
+
+// Project summary for homepage cards
+export interface ProjectSummary {
+  id: string;
+  name: string;
+  slug: string;
+  client_name: string | null;
+  color: string;
+  status: ProjectStatus;
+  totalPages: number;
+  publishedCount: number;
+  blockedCount: number;
+  lastActivityAt: string | null;
 }
 
 // === Multi-project types (Phase 1) ===

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireProjectRole, isErrorResponse } from "@/lib/project-auth";
 import { parseExcelBuffer } from "@/lib/excel-parser";
+import { slugifyPageName } from "@/lib/page-id-generator";
 import type { ImportResult } from "@/types";
 
 // POST /api/p/[projectId]/import - Import parsed page data (admin only)
@@ -81,7 +82,7 @@ export async function POST(
       page_id: row.page_id,
       name: row.name,
       type: row.type,
-      slug: row.slug,
+      slug: row.slug || slugifyPageName(row.name),
       source_url: row.source_url,
       content_draft_url: row.content_draft_url,
       page_style: row.page_style,

@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import {
   Search,
   ChevronsUpDown,
@@ -31,7 +30,6 @@ interface TreeControlsProps {
   onMigrationOwnerFilterChange: (values: ContentResponsibility[]) => void;
   onExpandAll: () => void;
   onCollapseAll: () => void;
-  onExpandToDepth: (depth: number) => void;
   onExport: () => void;
   onAddPage?: () => void;
 }
@@ -47,12 +45,9 @@ export function TreeControls({
   onMigrationOwnerFilterChange,
   onExpandAll,
   onCollapseAll,
-  onExpandToDepth,
   onExport,
   onAddPage,
 }: TreeControlsProps) {
-  const [depthInput, setDepthInput] = useState("2");
-
   const toggleStatus = (status: MigrationStatus) => {
     if (statusFilter.includes(status)) {
       onStatusFilterChange(statusFilter.filter((s) => s !== status));
@@ -182,23 +177,6 @@ export function TreeControls({
           <ChevronsDownUp className="h-3.5 w-3.5" />
           Collapse
         </Button>
-        <div className="flex items-center gap-1">
-          <Input
-            type="number"
-            min={1}
-            max={10}
-            value={depthInput}
-            onChange={(e) => setDepthInput(e.target.value)}
-            className="w-14 h-8 text-xs"
-          />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onExpandToDepth(parseInt(depthInput) || 2)}
-          >
-            Depth
-          </Button>
-        </div>
       </div>
 
       {/* Export */}

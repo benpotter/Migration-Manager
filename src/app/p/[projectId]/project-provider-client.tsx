@@ -2,7 +2,9 @@
 
 import { useMemo } from "react";
 import { ProjectContext } from "@/contexts/project-context";
+import { ProjectDataProvider } from "@/contexts/project-data-context";
 import { useRecentProjects } from "@/hooks/use-recent-projects";
+import { getWorkflowStages } from "@/lib/workflow";
 import type { Project, UserRole } from "@/types";
 
 export function ProjectProviderClient({
@@ -18,6 +20,7 @@ export function ProjectProviderClient({
     const isReadOnly = project.status !== "active";
     const canEdit = !isReadOnly && (userRole === "admin" || userRole === "editor");
     const isProjectAdmin = userRole === "admin";
+    const workflowStages = getWorkflowStages(project.settings);
 
     return {
       projectId: project.id,
@@ -27,6 +30,7 @@ export function ProjectProviderClient({
       isReadOnly,
       canEdit,
       isProjectAdmin,
+      workflowStages,
     };
   }, [project, userRole]);
 
@@ -48,7 +52,9 @@ export function ProjectProviderClient({
             : "This project is archived. All data is read-only."}
         </div>
       )}
-      {children}
+      <ProjectDataProvider>
+        {children}
+      </ProjectDataProvider>
     </ProjectContext.Provider>
   );
 }
