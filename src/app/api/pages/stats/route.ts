@@ -10,7 +10,7 @@ export async function GET() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ data: null, error: "Unauthorized" }, { status: 401 });
   }
 
   // Fetch all non-archived pages for aggregation (paginate past Supabase 1000-row default)
@@ -31,7 +31,8 @@ export async function GET() {
       .range(from, from + batchSize - 1);
 
     if (batchError) {
-      return NextResponse.json({ error: batchError.message }, { status: 500 });
+      console.error('[GET /api/pages/stats]', batchError);
+      return NextResponse.json({ data: null, error: "Failed to fetch page stats" }, { status: 500 });
     }
 
     if (batch && batch.length > 0) {
@@ -104,5 +105,5 @@ export async function GET() {
     recentComments: comments as MigrationStats["recentComments"],
   };
 
-  return NextResponse.json({ data: stats });
+  return NextResponse.json({ data: stats, error: null });
 }

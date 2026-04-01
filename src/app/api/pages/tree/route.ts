@@ -11,7 +11,7 @@ export async function GET() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ data: null, error: "Unauthorized" }, { status: 401 });
   }
 
   // Supabase defaults to 1000 rows — fetch all pages in batches
@@ -28,7 +28,8 @@ export async function GET() {
       .range(from, from + batchSize - 1);
 
     if (batchError) {
-      return NextResponse.json({ error: batchError.message }, { status: 500 });
+      console.error('[GET /api/pages/tree]', batchError);
+      return NextResponse.json({ data: null, error: "Failed to fetch page tree" }, { status: 500 });
     }
 
     if (batch && batch.length > 0) {
@@ -42,5 +43,5 @@ export async function GET() {
 
   const tree = buildTree(allPages);
 
-  return NextResponse.json({ data: tree });
+  return NextResponse.json({ data: tree, error: null });
 }

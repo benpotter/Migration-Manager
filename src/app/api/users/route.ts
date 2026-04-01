@@ -9,7 +9,7 @@ export async function GET() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ data: null, error: "Unauthorized" }, { status: 401 });
   }
 
   const { data: profile } = await supabase
@@ -20,7 +20,7 @@ export async function GET() {
 
   if (!profile?.is_superadmin) {
     return NextResponse.json(
-      { error: "Forbidden: superadmin required" },
+      { data: null, error: "Forbidden: superadmin required" },
       { status: 403 }
     );
   }
@@ -31,8 +31,9 @@ export async function GET() {
     .order("created_at", { ascending: false });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[GET /api/users]", error);
+    return NextResponse.json({ data: null, error: "Failed to fetch users" }, { status: 500 });
   }
 
-  return NextResponse.json(users ?? []);
+  return NextResponse.json({ data: users ?? [], error: null });
 }

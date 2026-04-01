@@ -9,7 +9,7 @@ export async function GET() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ data: null, error: "Unauthorized" }, { status: 401 });
   }
 
   // Check if superadmin
@@ -27,7 +27,8 @@ export async function GET() {
       .order("created_at", { ascending: false });
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error("[/api/projects]", error);
+    return NextResponse.json({ data: null, error: "Failed to fetch projects" }, { status: 500 });
     }
 
     return NextResponse.json({
@@ -42,7 +43,8 @@ export async function GET() {
     .eq("user_id", user.id);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[/api/projects]", error);
+    return NextResponse.json({ data: null, error: "Failed to fetch projects" }, { status: 500 });
   }
 
   const data = (memberships ?? [])
@@ -63,7 +65,7 @@ export async function POST(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ data: null, error: "Unauthorized" }, { status: 401 });
   }
 
   const { data: profile } = await supabase
@@ -83,6 +85,14 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json();
 
+  if (!body.name || typeof body.name !== "string") {
+    return NextResponse.json({ data: null, error: "name is required" }, { status: 400 });
+  }
+
+  if (!body.slug || typeof body.slug !== "string") {
+    return NextResponse.json({ data: null, error: "slug is required" }, { status: 400 });
+  }
+
   const { data: project, error: projectError } = await adminClient
     .from("projects")
     .insert({
@@ -101,7 +111,8 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (projectError) {
-    return NextResponse.json({ error: projectError.message }, { status: 500 });
+    console.error("[POST /api/projects]", projectError);
+    return NextResponse.json({ data: null, error: "Failed to create project" }, { status: 500 });
   }
 
   // Auto-add creator as admin member

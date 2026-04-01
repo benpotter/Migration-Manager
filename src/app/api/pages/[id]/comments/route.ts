@@ -13,7 +13,7 @@ export async function GET(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ data: null, error: "Unauthorized" }, { status: 401 });
   }
 
   const { data, error } = await supabase
@@ -23,10 +23,11 @@ export async function GET(
     .order("created_at", { ascending: true });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('[GET /api/pages/[id]/comments]', error);
+    return NextResponse.json({ data: null, error: "Failed to fetch comments" }, { status: 500 });
   }
 
-  return NextResponse.json(data ?? []);
+  return NextResponse.json({ data: data ?? [], error: null });
 }
 
 // POST /api/pages/[id]/comments - Create a comment
@@ -41,14 +42,14 @@ export async function POST(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ data: null, error: "Unauthorized" }, { status: 401 });
   }
 
   const body = await request.json();
   const { content } = body as { content: string };
 
   if (!content) {
-    return NextResponse.json({ error: "content is required" }, { status: 400 });
+    return NextResponse.json({ data: null, error: "content is required" }, { status: 400 });
   }
 
   const { data, error } = await supabase
@@ -58,8 +59,9 @@ export async function POST(
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('[POST /api/pages/[id]/comments]', error);
+    return NextResponse.json({ data: null, error: "Failed to create comment" }, { status: 500 });
   }
 
-  return NextResponse.json(data, { status: 201 });
+  return NextResponse.json({ data, error: null }, { status: 201 });
 }

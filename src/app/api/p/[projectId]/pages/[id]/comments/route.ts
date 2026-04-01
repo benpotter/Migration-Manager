@@ -21,7 +21,7 @@ export async function GET(
     .single();
 
   if (!page) {
-    return NextResponse.json({ error: "Page not found in this project" }, { status: 404 });
+    return NextResponse.json({ data: null, error: "Page not found in this project" }, { status: 404 });
   }
 
   const { data, error } = await supabase
@@ -31,11 +31,11 @@ export async function GET(
     .order("created_at", { ascending: true });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('[GET /api/p/[projectId]/pages/[id]/comments]', error);
+    return NextResponse.json({ data: null, error: "Failed to fetch comments" }, { status: 500 });
   }
 
-  // Return flat array — CommentThread expects res.json() to be Comment[]
-  return NextResponse.json(data ?? []);
+  return NextResponse.json({ data: data ?? [], error: null });
 }
 
 // POST /api/p/[projectId]/pages/[id]/comments - Create a comment
@@ -58,14 +58,14 @@ export async function POST(
     .single();
 
   if (!page) {
-    return NextResponse.json({ error: "Page not found in this project" }, { status: 404 });
+    return NextResponse.json({ data: null, error: "Page not found in this project" }, { status: 404 });
   }
 
   const body = await request.json();
   const { content } = body as { content: string };
 
   if (!content) {
-    return NextResponse.json({ error: "content is required" }, { status: 400 });
+    return NextResponse.json({ data: null, error: "content is required" }, { status: 400 });
   }
 
   const { data, error } = await supabase
@@ -75,9 +75,9 @@ export async function POST(
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('[POST /api/p/[projectId]/pages/[id]/comments]', error);
+    return NextResponse.json({ data: null, error: "Failed to create comment" }, { status: 500 });
   }
 
-  // Return flat object — CommentThread expects res.json() to be Comment
-  return NextResponse.json(data, { status: 201 });
+  return NextResponse.json({ data, error: null }, { status: 201 });
 }

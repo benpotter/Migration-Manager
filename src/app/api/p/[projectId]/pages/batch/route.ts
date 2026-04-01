@@ -22,11 +22,11 @@ export async function PATCH(
   const resolvedIds = ids ?? pageIds;
 
   if (!resolvedIds || !Array.isArray(resolvedIds) || resolvedIds.length === 0) {
-    return NextResponse.json({ error: "ids or pageIds array is required" }, { status: 400 });
+    return NextResponse.json({ data: null, error: "ids or pageIds array is required" }, { status: 400 });
   }
 
   if (!updates || typeof updates !== "object" || Object.keys(updates).length === 0) {
-    return NextResponse.json({ error: "updates object is required" }, { status: 400 });
+    return NextResponse.json({ data: null, error: "updates object is required" }, { status: 400 });
   }
 
   // Fetch current pages for audit logging, scoped to project
@@ -78,7 +78,8 @@ export async function PATCH(
     .select();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('[PATCH /api/p/[projectId]/pages/batch]', error);
+    return NextResponse.json({ data: null, error: "Failed to batch update pages" }, { status: 500 });
   }
 
   if (editEntries.length > 0) {
@@ -88,5 +89,6 @@ export async function PATCH(
   return NextResponse.json({
     data,
     updated: data?.length ?? 0,
+    error: null,
   });
 }

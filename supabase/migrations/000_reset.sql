@@ -2,12 +2,8 @@
 -- ==========================================
 -- Run this to wipe the schema before re-running 001_initial_schema.sql
 
--- 1. Drop triggers
-DROP TRIGGER IF EXISTS pages_updated_at ON pages;
-DROP TRIGGER IF EXISTS comments_updated_at ON comments;
-DROP TRIGGER IF EXISTS profiles_updated_at ON user_profiles;
-
--- 2. Drop tables (child tables first to respect foreign keys)
+-- 1. Drop tables (child tables first to respect foreign keys)
+-- CASCADE also drops any triggers on these tables
 -- CASCADE also removes them from the supabase_realtime publication automatically
 DROP TABLE IF EXISTS notifications CASCADE;
 DROP TABLE IF EXISTS user_presence CASCADE;

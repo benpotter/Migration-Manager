@@ -53,7 +53,7 @@ export async function requireProjectRole(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ data: null, error: "Unauthorized" }, { status: 401 });
   }
 
   const { data: membership } = await supabase
@@ -64,7 +64,7 @@ export async function requireProjectRole(
     .single();
 
   if (!membership || !allowedRoles.includes(membership.role as UserRole)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return NextResponse.json({ data: null, error: "Forbidden" }, { status: 403 });
   }
 
   return {

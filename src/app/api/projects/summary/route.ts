@@ -11,7 +11,7 @@ export async function GET() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ data: null, error: "Unauthorized" }, { status: 401 });
   }
 
   // Check if superadmin
@@ -30,14 +30,20 @@ export async function GET() {
       .select("*")
       .eq("status", "active")
       .order("updated_at", { ascending: false });
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) {
+      console.error('[GET /api/projects/summary]', error);
+      return NextResponse.json({ data: null, error: "Failed to fetch projects" }, { status: 500 });
+    }
     projects = data ?? [];
   } else {
     const { data: memberships, error } = await supabase
       .from("project_members")
       .select("project:projects(*)")
       .eq("user_id", user.id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) {
+      console.error('[GET /api/projects/summary]', error);
+      return NextResponse.json({ data: null, error: "Failed to fetch projects" }, { status: 500 });
+    }
     projects = (memberships ?? [])
       .map((m) => m.project)
       .filter((p: any) => p && p.status === "active");
@@ -47,7 +53,7 @@ export async function GET() {
   const projectIds = projects.map((p) => p.id as string);
 
   if (projectIds.length === 0) {
-    return NextResponse.json({ data: [] });
+    return NextResponse.json({ data: [], error: null });
   }
 
   // Get page counts grouped by project_id
@@ -99,5 +105,5 @@ export async function GET() {
     };
   });
 
-  return NextResponse.json({ data: summaries });
+  return NextResponse.json({ data: summaries, error: null });
 }

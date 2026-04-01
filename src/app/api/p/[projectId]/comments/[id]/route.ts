@@ -54,10 +54,11 @@ export async function PATCH(
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[PATCH /api/p/comments]", error);
+    return NextResponse.json({ data: null, error: "Failed to update comment" }, { status: 500 });
   }
 
-  return NextResponse.json({ data });
+  return NextResponse.json({ data, error: null });
 }
 
 // DELETE /api/p/[projectId]/comments/[id] - Delete own comment
@@ -103,8 +104,9 @@ export async function DELETE(
     .eq("id", id);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[DELETE /api/p/comments]", error);
+    return NextResponse.json({ data: null, error: "Failed to delete comment" }, { status: 500 });
   }
 
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ data: { success: true }, error: null });
 }

@@ -127,7 +127,8 @@ export async function PATCH(
     .single();
 
   if (updateError) {
-    return NextResponse.json({ error: updateError.message }, { status: 500 });
+    console.error("[PATCH /api/pages]", updateError);
+    return NextResponse.json({ data: null, error: "Failed to update page" }, { status: 500 });
   }
 
   // Insert edit log entries
@@ -135,7 +136,7 @@ export async function PATCH(
     await supabase.from("page_edits").insert(editEntries);
   }
 
-  return NextResponse.json({ data: updatedPage });
+  return NextResponse.json({ data: updatedPage, error: null });
 }
 
 // DELETE /api/pages/[id] - Delete a page (admin only)
@@ -173,8 +174,9 @@ export async function DELETE(
     .eq("id", id);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[DELETE /api/pages]", error);
+    return NextResponse.json({ data: null, error: "Failed to delete page" }, { status: 500 });
   }
 
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ data: { success: true }, error: null });
 }

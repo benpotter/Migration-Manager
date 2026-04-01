@@ -82,7 +82,8 @@ export async function PATCH(request: NextRequest) {
     .select();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[PATCH /api/pages/bulk]", error);
+    return NextResponse.json({ data: null, error: "Failed to bulk update pages" }, { status: 500 });
   }
 
   // Insert edit log entries

@@ -18,7 +18,7 @@ export async function GET(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ data: null, error: "Unauthorized" }, { status: 401 });
   }
 
   // Try membership first
@@ -33,7 +33,7 @@ export async function GET(
       .single();
 
     if (!profile?.is_superadmin) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return NextResponse.json({ data: null, error: "Forbidden" }, { status: 403 });
     }
 
     const { data: project, error } = await supabase
@@ -43,11 +43,12 @@ export async function GET(
       .single();
 
     if (error || !project) {
-      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+      return NextResponse.json({ data: null, error: "Project not found" }, { status: 404 });
     }
 
     return NextResponse.json({
       data: { ...project, userRole: "admin" as const },
+      error: null,
     });
   }
 
@@ -58,11 +59,12 @@ export async function GET(
     .single();
 
   if (error || !project) {
-    return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    return NextResponse.json({ data: null, error: "Project not found" }, { status: 404 });
   }
 
   return NextResponse.json({
     data: { ...project, userRole: membership.role },
+    error: null,
   });
 }
 
@@ -104,10 +106,11 @@ export async function PATCH(
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error("[PATCH /api/projects]", error);
+      return NextResponse.json({ data: null, error: "Failed to update project" }, { status: 500 });
     }
 
-    return NextResponse.json({ data: project });
+    return NextResponse.json({ data: project, error: null });
   }
 
   const body = await request.json();
@@ -119,10 +122,11 @@ export async function PATCH(
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[PATCH /api/projects]", error);
+    return NextResponse.json({ data: null, error: "Failed to update project" }, { status: 500 });
   }
 
-  return NextResponse.json({ data: project });
+  return NextResponse.json({ data: project, error: null });
 }
 
 // DELETE /api/projects/[id] - Delete project (admin or superadmin)
@@ -156,10 +160,11 @@ export async function DELETE(
     const { error } = await supabase.from("projects").delete().eq("id", id);
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error("[DELETE /api/projects]", error);
+      return NextResponse.json({ data: null, error: "Failed to delete project" }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ data: { success: true }, error: null });
   }
 
   const { error } = await result.supabase
@@ -168,8 +173,9 @@ export async function DELETE(
     .eq("id", id);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[DELETE /api/projects]", error);
+    return NextResponse.json({ data: null, error: "Failed to delete project" }, { status: 500 });
   }
 
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ data: { success: true }, error: null });
 }

@@ -33,7 +33,8 @@ export async function GET(
         .range(from, from + batchSize - 1);
 
       if (batchError) {
-        return NextResponse.json({ error: batchError.message }, { status: 500 });
+        console.error('[GET /api/p/[projectId]/pages]', batchError);
+        return NextResponse.json({ data: null, error: "Failed to fetch pages" }, { status: 500 });
       }
 
       if (batch && batch.length > 0) {
@@ -45,7 +46,7 @@ export async function GET(
       }
     }
 
-    return NextResponse.json({ data: allPages });
+    return NextResponse.json({ data: allPages, error: null });
   }
 
   const search = sp.get("search") || "";
@@ -90,7 +91,8 @@ export async function GET(
   const { data, error, count } = await query;
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('[GET /api/p/[projectId]/pages]', error);
+    return NextResponse.json({ data: null, error: "Failed to fetch pages" }, { status: 500 });
   }
 
   return NextResponse.json({
@@ -101,6 +103,7 @@ export async function GET(
       total: count ?? 0,
       totalPages: Math.ceil((count ?? 0) / pageSize),
     },
+    error: null,
   });
 }
 
@@ -119,7 +122,7 @@ export async function POST(
   const { name, parent_page_id, page_style, slug, content_responsibility, status, ...rest } = body;
 
   if (!name) {
-    return NextResponse.json({ error: "name is required" }, { status: 400 });
+    return NextResponse.json({ data: null, error: "name is required" }, { status: 400 });
   }
 
   // Auto-generate page_id if not provided
@@ -136,7 +139,7 @@ export async function POST(
         .single();
 
       if (!parentPage) {
-        return NextResponse.json({ error: "Parent page not found in this project" }, { status: 404 });
+        return NextResponse.json({ data: null, error: "Parent page not found in this project" }, { status: 404 });
       }
       parentPageIdStr = parentPage.page_id;
     }
@@ -161,7 +164,7 @@ export async function POST(
 
   if (existing) {
     return NextResponse.json(
-      { error: `page_id "${pageId}" already exists in this project` },
+      { data: null, error: `page_id "${pageId}" already exists in this project` },
       { status: 409 }
     );
   }
@@ -205,8 +208,9 @@ export async function POST(
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('[POST /api/p/[projectId]/pages]', error);
+    return NextResponse.json({ data: null, error: "Failed to create page" }, { status: 500 });
   }
 
-  return NextResponse.json({ data }, { status: 201 });
+  return NextResponse.json({ data, error: null }, { status: 201 });
 }

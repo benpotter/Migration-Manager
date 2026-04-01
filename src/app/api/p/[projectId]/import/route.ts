@@ -19,7 +19,7 @@ export async function POST(
   const file = formData.get("file");
 
   if (!file || !(file instanceof File)) {
-    return NextResponse.json({ error: "file is required" }, { status: 400 });
+    return NextResponse.json({ data: null, error: "file is required" }, { status: 400 });
   }
 
   const buffer = await file.arrayBuffer();
@@ -28,7 +28,7 @@ export async function POST(
 
   if (rows.length === 0) {
     return NextResponse.json(
-      { error: "No valid rows found in file", errors: parseErrors },
+      { data: null, error: "No valid rows found in file", errors: parseErrors },
       { status: 400 }
     );
   }
@@ -167,5 +167,5 @@ export async function POST(
     errors,
   };
 
-  return NextResponse.json({ data: importResult }, { status: errors.length > 0 ? 207 : 200 });
+  return NextResponse.json({ data: importResult, error: null }, { status: errors.length > 0 ? 207 : 200 });
 }

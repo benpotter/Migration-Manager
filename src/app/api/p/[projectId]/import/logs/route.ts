@@ -20,7 +20,8 @@ export async function GET(
     .limit(50);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('[GET /api/p/[projectId]/import/logs]', error);
+    return NextResponse.json({ data: null, error: "Failed to fetch import logs" }, { status: 500 });
   }
 
   // Flatten user join for frontend compatibility
@@ -36,6 +37,5 @@ export async function GET(
     user_name: log.user?.name ?? null,
   }));
 
-  // Return flat array — ImportPage expects res.json() to be ImportLog[]
-  return NextResponse.json(logs);
+  return NextResponse.json({ data: logs, error: null });
 }

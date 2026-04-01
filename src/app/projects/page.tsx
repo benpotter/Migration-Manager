@@ -32,6 +32,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Archive,
   CheckCircle2,
+  FolderKanban,
   MoreHorizontal,
   Plus,
   RotateCcw,
@@ -264,23 +265,17 @@ export default function ProjectsPage() {
           {filtered.map((project) => (
             <Card
               key={project.id}
-              className={`hover:shadow-md transition-shadow cursor-pointer h-full relative group ${
+              className={`hover:shadow-md transition-shadow cursor-pointer h-full group ${
                 project.status === "archived" ? "opacity-70" : ""
               }`}
             >
-              {/* Color accent */}
-              <div
-                className="absolute top-0 left-0 right-0 h-1 rounded-t-lg"
-                style={{ backgroundColor: project.color || "#6b7280" }}
-              />
-
               <Link href={`/p/${project.id}`} className="block">
-                <CardHeader className="pb-3 pt-5">
+                <CardHeader className="pb-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
-                      <div
-                        className="h-3 w-3 rounded-full shrink-0"
-                        style={{ backgroundColor: project.color || "#6b7280" }}
+                      <FolderKanban
+                        className="h-5 w-5 shrink-0"
+                        style={{ color: project.color || "#6b7280" }}
                       />
                       <CardTitle className="text-base truncate">
                         {project.name}

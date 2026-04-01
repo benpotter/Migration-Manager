@@ -42,8 +42,8 @@ export default function UsersPage() {
       try {
         const res = await fetch("/api/users");
         if (!res.ok) throw new Error("Failed to fetch users");
-        const data = await res.json();
-        setUsers(data);
+        const json = await res.json();
+        setUsers(json.data);
       } catch {
         toast.error("Failed to load users");
       } finally {

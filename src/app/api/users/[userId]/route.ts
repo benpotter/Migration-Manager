@@ -49,7 +49,8 @@ export async function PATCH(
     .select();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[PATCH /api/users]", error);
+    return NextResponse.json({ data: null, error: "Failed to update user" }, { status: 500 });
   }
 
   if (!updated || updated.length === 0) {
@@ -59,5 +60,5 @@ export async function PATCH(
     );
   }
 
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ data: { success: true }, error: null });
 }

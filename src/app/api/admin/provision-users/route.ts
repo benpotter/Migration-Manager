@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ data: null, error: "Unauthorized" }, { status: 401 });
   }
 
   const { data: profile } = await supabase
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
 
   if (!profile?.is_superadmin) {
     return NextResponse.json(
-      { error: "Forbidden: superadmin required" },
+      { data: null, error: "Forbidden: superadmin required" },
       { status: 403 }
     );
   }
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
 
   if (!Array.isArray(users) || users.length === 0) {
     return NextResponse.json(
-      { error: "users array is required" },
+      { data: null, error: "users array is required" },
       { status: 400 }
     );
   }
@@ -114,5 +114,5 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({ created, skipped, errors });
+  return NextResponse.json({ data: { created, skipped, errors }, error: null });
 }

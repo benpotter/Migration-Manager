@@ -32,7 +32,8 @@ export async function GET(
       .range(from, from + batchSize - 1);
 
     if (batchError) {
-      return NextResponse.json({ error: batchError.message }, { status: 500 });
+      console.error('[GET /api/p/[projectId]/pages/stats]', batchError);
+      return NextResponse.json({ data: null, error: "Failed to fetch page stats" }, { status: 500 });
     }
 
     if (batch && batch.length > 0) {
@@ -116,5 +117,5 @@ export async function GET(
     recentComments: comments as MigrationStats["recentComments"],
   };
 
-  return NextResponse.json({ data: stats });
+  return NextResponse.json({ data: stats, error: null });
 }

@@ -107,7 +107,8 @@ export async function PATCH(
     .single();
 
   if (updateError) {
-    return NextResponse.json({ error: updateError.message }, { status: 500 });
+    console.error("[PATCH /api/p/pages]", updateError);
+    return NextResponse.json({ data: null, error: "Failed to update page" }, { status: 500 });
   }
 
   if (editEntries.length > 0) {
@@ -171,10 +172,11 @@ export async function DELETE(
       .eq("project_id", projectId);
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error("[DELETE /api/p/pages cascade]", error);
+      return NextResponse.json({ data: null, error: "Failed to delete pages" }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, deleted: idsToDelete.length });
+    return NextResponse.json({ data: { success: true, deleted: idsToDelete.length }, error: null });
   }
 
   // No cascade: orphan children to the deleted page's parent (or root)
@@ -185,7 +187,8 @@ export async function DELETE(
     .eq("project_id", projectId);
 
   if (orphanError) {
-    return NextResponse.json({ error: orphanError.message }, { status: 500 });
+    console.error("[DELETE /api/p/pages orphan]", orphanError);
+    return NextResponse.json({ data: null, error: "Failed to update child pages" }, { status: 500 });
   }
 
   const { error } = await supabase
@@ -195,8 +198,9 @@ export async function DELETE(
     .eq("project_id", projectId);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[DELETE /api/p/pages]", error);
+    return NextResponse.json({ data: null, error: "Failed to delete page" }, { status: 500 });
   }
 
-  return NextResponse.json({ success: true, deleted: 1 });
+  return NextResponse.json({ data: { success: true, deleted: 1 }, error: null });
 }

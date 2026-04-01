@@ -21,7 +21,7 @@ export async function GET(
     .single();
 
   if (!page) {
-    return NextResponse.json({ error: "Page not found in this project" }, { status: 404 });
+    return NextResponse.json({ data: null, error: "Page not found in this project" }, { status: 404 });
   }
 
   const { data, error } = await supabase
@@ -32,9 +32,9 @@ export async function GET(
     .limit(100);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('[GET /api/p/[projectId]/pages/[id]/history]', error);
+    return NextResponse.json({ data: null, error: "Failed to fetch page history" }, { status: 500 });
   }
 
-  // Return flat array — EditHistory expects res.json() to be PageEdit[]
-  return NextResponse.json(data ?? []);
+  return NextResponse.json({ data: data ?? [], error: null });
 }

@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ data: null, error: "Unauthorized" }, { status: 401 });
   }
 
   const params = request.nextUrl.searchParams;
@@ -66,7 +66,8 @@ export async function GET(request: NextRequest) {
   const { data, error, count } = await query;
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('[GET /api/pages]', error);
+    return NextResponse.json({ data: null, error: "Failed to fetch pages" }, { status: 500 });
   }
 
   return NextResponse.json({
@@ -77,6 +78,7 @@ export async function GET(request: NextRequest) {
       total: count ?? 0,
       totalPages: Math.ceil((count ?? 0) / pageSize),
     },
+    error: null,
   });
 }
 
@@ -88,7 +90,7 @@ export async function POST(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ data: null, error: "Unauthorized" }, { status: 401 });
   }
 
   // Check admin role
@@ -102,7 +104,7 @@ export async function POST(request: NextRequest) {
   const hasAdminEmail = user.email && isAdminEmail(user.email);
 
   if (!hasAdminRole && !hasAdminEmail) {
-    return NextResponse.json({ error: "Forbidden: admin role required" }, { status: 403 });
+    return NextResponse.json({ data: null, error: "Forbidden: admin role required" }, { status: 403 });
   }
 
   const body = await request.json();
@@ -114,8 +116,9 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('[POST /api/pages]', error);
+    return NextResponse.json({ data: null, error: "Failed to create page" }, { status: 500 });
   }
 
-  return NextResponse.json({ data }, { status: 201 });
+  return NextResponse.json({ data, error: null }, { status: 201 });
 }

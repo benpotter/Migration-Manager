@@ -14,7 +14,7 @@ export async function GET(
 
   const pageId = request.nextUrl.searchParams.get("pageId");
   if (!pageId) {
-    return NextResponse.json({ error: "pageId query param is required" }, { status: 400 });
+    return NextResponse.json({ data: null, error: "pageId query param is required" }, { status: 400 });
   }
 
   // Verify page belongs to this project
@@ -26,7 +26,7 @@ export async function GET(
     .single();
 
   if (!page) {
-    return NextResponse.json({ error: "Page not found in this project" }, { status: 404 });
+    return NextResponse.json({ data: null, error: "Page not found in this project" }, { status: 404 });
   }
 
   const { data, error } = await supabase
@@ -36,10 +36,11 @@ export async function GET(
     .order("created_at", { ascending: true });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('[GET /api/p/[projectId]/comments]', error);
+    return NextResponse.json({ data: null, error: "Failed to fetch comments" }, { status: 500 });
   }
 
-  return NextResponse.json({ data: data ?? [] });
+  return NextResponse.json({ data: data ?? [], error: null });
 }
 
 // POST /api/p/[projectId]/comments - Create a comment
@@ -58,7 +59,7 @@ export async function POST(
 
   if (!page_id || !content) {
     return NextResponse.json(
-      { error: "page_id and content are required" },
+      { data: null, error: "page_id and content are required" },
       { status: 400 }
     );
   }
@@ -72,7 +73,7 @@ export async function POST(
     .single();
 
   if (!page) {
-    return NextResponse.json({ error: "Page not found in this project" }, { status: 404 });
+    return NextResponse.json({ data: null, error: "Page not found in this project" }, { status: 404 });
   }
 
   const { data, error } = await supabase
@@ -82,8 +83,9 @@ export async function POST(
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('[POST /api/p/[projectId]/comments]', error);
+    return NextResponse.json({ data: null, error: "Failed to create comment" }, { status: 500 });
   }
 
-  return NextResponse.json({ data }, { status: 201 });
+  return NextResponse.json({ data, error: null }, { status: 201 });
 }

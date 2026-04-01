@@ -18,6 +18,7 @@ import {
   ArrowRight,
   Plus,
   FolderOpen,
+  FolderKanban,
 } from "lucide-react";
 import Link from "next/link";
 import { useCurrentUser } from "@/hooks/use-current-user";
@@ -162,14 +163,13 @@ export default function HomePage() {
           return (
             <Link key={project.id} href={`/p/${project.id}`}>
               <Card className="hover:shadow-md transition-shadow h-full cursor-pointer group">
-                {/* Color accent bar */}
-                <div
-                  className="h-1.5 rounded-t-lg"
-                  style={{ backgroundColor: project.color }}
-                />
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
-                    <div>
+                    <div className="flex items-center gap-2">
+                      <FolderKanban
+                        className="h-5 w-5 shrink-0"
+                        style={{ color: project.color }}
+                      />
                       <CardTitle className="text-base group-hover:underline">
                         {project.name}
                       </CardTitle>

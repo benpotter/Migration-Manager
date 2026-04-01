@@ -25,7 +25,7 @@ export async function POST(
   };
 
   if (!pages || !Array.isArray(pages) || pages.length === 0) {
-    return NextResponse.json({ error: "pages array is required" }, { status: 400 });
+    return NextResponse.json({ data: null, error: "pages array is required" }, { status: 400 });
   }
 
   // Resolve parent page_id string if parent specified
@@ -40,7 +40,7 @@ export async function POST(
       .single();
 
     if (!parent) {
-      return NextResponse.json({ error: "Parent page not found" }, { status: 404 });
+      return NextResponse.json({ data: null, error: "Parent page not found" }, { status: 404 });
     }
     parentPageIdStr = parent.page_id;
   }
@@ -77,7 +77,7 @@ export async function POST(
   }
 
   if (toInsert.length === 0) {
-    return NextResponse.json({ error: "No valid pages to create" }, { status: 400 });
+    return NextResponse.json({ data: null, error: "No valid pages to create" }, { status: 400 });
   }
 
   const { data, error } = await supabase
@@ -86,8 +86,9 @@ export async function POST(
     .select();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('[POST /api/p/[projectId]/pages/batch-create]', error);
+    return NextResponse.json({ data: null, error: "Failed to batch create pages" }, { status: 500 });
   }
 
-  return NextResponse.json({ data, created: data?.length ?? 0 }, { status: 201 });
+  return NextResponse.json({ data, created: data?.length ?? 0, error: null }, { status: 201 });
 }

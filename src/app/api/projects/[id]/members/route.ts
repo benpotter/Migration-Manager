@@ -19,10 +19,11 @@ export async function GET(
     .order("created_at", { ascending: true });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[GET /api/projects/members]", error);
+    return NextResponse.json({ data: null, error: "Failed to fetch members" }, { status: 500 });
   }
 
-  return NextResponse.json({ data: data ?? [] });
+  return NextResponse.json({ data: data ?? [], error: null });
 }
 
 // POST /api/projects/[id]/members - Add member (admin only)
@@ -86,14 +87,15 @@ export async function POST(
   if (error) {
     if (error.code === "23505") {
       return NextResponse.json(
-        { error: "User is already a member of this project" },
+        { data: null, error: "User is already a member of this project" },
         { status: 409 }
       );
     }
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[POST /api/projects/members]", error);
+    return NextResponse.json({ data: null, error: "Failed to add member" }, { status: 500 });
   }
 
-  return NextResponse.json({ data }, { status: 201 });
+  return NextResponse.json({ data, error: null }, { status: 201 });
 }
 
 // PATCH /api/projects/[id]/members - Update member role (admin only)
@@ -142,10 +144,11 @@ export async function PATCH(
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[PATCH /api/projects/members]", error);
+    return NextResponse.json({ data: null, error: "Failed to update member role" }, { status: 500 });
   }
 
-  return NextResponse.json({ data });
+  return NextResponse.json({ data, error: null });
 }
 
 // DELETE /api/projects/[id]/members - Remove member (admin only)
@@ -190,8 +193,9 @@ export async function DELETE(
     .eq("user_id", user_id);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[DELETE /api/projects/members]", error);
+    return NextResponse.json({ data: null, error: "Failed to remove member" }, { status: 500 });
   }
 
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ data: { success: true }, error: null });
 }

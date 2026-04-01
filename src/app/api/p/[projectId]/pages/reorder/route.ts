@@ -33,7 +33,23 @@ export async function PATCH(
     .single();
 
   if (!page) {
-    return NextResponse.json({ error: "Page not found" }, { status: 404 });
+    return NextResponse.json({ data: null, error: "Page not found" }, { status: 404 });
+  }
+
+  // If parent hasn't changed, just update sort_order — no page_id regeneration needed
+  if (page.parent_page_id === newParentPageId) {
+    const { error: updateError } = await supabase
+      .from("pages")
+      .update({ sort_order: newSortOrder ?? 0 })
+      .eq("id", pageId)
+      .eq("project_id", projectId);
+
+    if (updateError) {
+      console.error("[PATCH /api/p/pages/reorder]", updateError);
+      return NextResponse.json({ data: null, error: "Failed to reorder" }, { status: 500 });
+    }
+
+    return NextResponse.json({ data: { success: true }, error: null });
   }
 
   // Cycle detection: ensure newParent is not a descendant of pageId
@@ -83,7 +99,10 @@ export async function PATCH(
     .select("page_id")
     .eq("project_id", projectId);
 
-  const existingIds = (allPages ?? []).map((p) => p.page_id);
+  // Exclude the page's own page_id so it doesn't increment past itself
+  const existingIds = (allPages ?? [])
+    .filter((p) => p.page_id !== page.page_id)
+    .map((p) => p.page_id);
   const newPageIdStr = generatePageId(newParentPageIdStr, existingIds);
   const newDepth = depthFromPageId(newPageIdStr);
 
@@ -114,10 +133,10 @@ export async function PATCH(
     if (!children) return;
 
     for (const child of children) {
-      const childNewPageId = generatePageId(
-        parentPageIdStr,
-        (await supabase.from("pages").select("page_id").eq("project_id", projectId)).data?.map(p => p.page_id) ?? []
-      );
+      // Exclude the child's own page_id to avoid incrementing past itself
+      const allCurrent = (await supabase.from("pages").select("page_id").eq("project_id", projectId)).data ?? [];
+      const siblingIds = allCurrent.filter(p => p.page_id !== child.page_id).map(p => p.page_id);
+      const childNewPageId = generatePageId(parentPageIdStr, siblingIds);
       const childNewDepth = depthFromPageId(childNewPageId);
 
       await supabase
@@ -141,5 +160,5 @@ export async function PATCH(
     new_value: newParentPageId,
   });
 
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ data: { success: true }, error: null });
 }
